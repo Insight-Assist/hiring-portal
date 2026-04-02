@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background-color: #ffffff;
+    color: #1C1C1C;
+  }
+
+  h1, h2, h3 {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-brand-forest text-white px-6 py-3 text-sm font-medium tracking-wide transition-all duration-200 hover:bg-brand-charcoal;
+  }
+
+  .btn-secondary {
+    @apply border border-brand-border text-brand-charcoal px-6 py-3 text-sm font-medium tracking-wide transition-all duration-200 hover:border-brand-forest hover:text-brand-forest;
+  }
+
+  .input-field {
+    @apply w-full border border-brand-border px-4 py-3 text-sm text-brand-charcoal placeholder-gray-400 focus:outline-none focus:border-brand-sage transition-colors bg-white;
+  }
+
+  .form-label {
+    @apply block text-sm font-medium text-brand-charcoal mb-1.5;
+  }
+
+  .section-divider {
+    @apply border-t border-brand-border my-8;
+  }
+
+  .step-indicator {
+    @apply w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium;
+  }
+}
+
+/* Drag and drop styles */
+.dragging {
+  opacity: 0.5;
+}
+
+.drag-over {
+  border-color: #76886C !important;
+  background-color: #EDF0EB !important;
+}
