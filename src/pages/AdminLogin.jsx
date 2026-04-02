@@ -27,7 +27,7 @@ export default function AdminLogin() {
     <div className="min-h-screen bg-brand-cream flex items-center justify-center px-6">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <p className="font-display text-3xl text-brand-charcoal">Insight Assist</p>
+          <p className="font-body text-sm font-black tracking-widest uppercase"><span className="text-brand-charcoal">INSIGHT</span><span className="text-brand-sage font-normal">ASSIST</span></p>
           <p className="text-sm text-gray-400 mt-1">Admin Portal</p>
         </div>
 

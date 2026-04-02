@@ -30,15 +30,19 @@ const successMarkers = [
   "The scribe reduces the doctor's mental load — not adds to it",
 ]
 
+const benefits = [
+  { label: "PTO", detail: "40 hours of paid time off per year" },
+  { label: "Sick Pay", detail: "40 hours of paid sick leave per year" },
+  { label: "Utility Stipend", detail: "$70 USD per month toward internet and utilities" },
+]
+
 export default function JobPosting() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="border-b border-brand-border px-6 py-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div>
-            <span className="font-display text-xl text-brand-charcoal tracking-wide">Insight Assist</span>
-          </div>
+          <span className="font-body text-sm font-black tracking-widest uppercase"><span className="text-brand-charcoal">INSIGHT</span><span className="text-brand-sage font-normal">ASSIST</span></span>
           <Link to="/apply" className="btn-primary">
             Apply Now
           </Link>
@@ -64,7 +68,7 @@ export default function JobPosting() {
             </span>
             <span className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-brand-sage"></span>
-              $8 USD/hour · Contractor
+              $7+ USD/hour depending on experience · Contractor
             </span>
           </div>
         </div>
@@ -97,6 +101,19 @@ export default function JobPosting() {
             <p className="text-xs text-gray-500 italic">
               This role combines real-time scribing, insurance verification, billing support, administrative coordination, team communication, patient communication, and general support.
             </p>
+          </div>
+        </section>
+
+        {/* Benefits */}
+        <section className="mb-10">
+          <h2 className="font-display text-2xl text-brand-charcoal mb-4">Benefits</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {benefits.map(({ label, detail }) => (
+              <div key={label} className="bg-brand-cream p-5">
+                <p className="text-xs uppercase tracking-widest text-brand-sage font-medium mb-2">{label}</p>
+                <p className="text-sm text-brand-charcoal">{detail}</p>
+              </div>
+            ))}
           </div>
         </section>
 
@@ -145,7 +162,7 @@ export default function JobPosting() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
               { step: "01", label: "Application", desc: "Basic info, background, and short answers" },
-              { step: "02", label: "Trial Task", desc: "A short practical exercise (5–10 minutes)" },
+              { step: "02", label: "Trial Task", desc: "A short practical exercise (5-10 minutes)" },
               { step: "03", label: "Personality Assessment", desc: "A workplace style inventory — no right answers" },
             ].map(({ step, label, desc }) => (
               <div key={step} className="border border-brand-border p-5">
@@ -161,7 +178,7 @@ export default function JobPosting() {
         <div className="border-t border-brand-border pt-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <p className="font-display text-xl text-brand-charcoal">Ready to apply?</p>
-            <p className="text-sm text-gray-500 mt-1">The full application takes approximately 20–30 minutes.</p>
+            <p className="text-sm text-gray-500 mt-1">The full application takes approximately 20-30 minutes.</p>
           </div>
           <Link to="/apply" className="btn-primary whitespace-nowrap">
             Start Application

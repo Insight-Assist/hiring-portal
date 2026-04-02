@@ -72,7 +72,7 @@ export default function AdminDashboard() {
       <header className="border-b border-brand-border px-6 py-4 bg-brand-charcoal">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <span className="font-display text-xl text-white">Insight Assist</span>
+            <span className="font-body text-sm font-black tracking-widest uppercase"><span className="text-white">INSIGHT</span><span className="text-brand-sage font-normal">ASSIST</span></span>
             <span className="text-brand-sage-mid text-sm">· Hiring Portal</span>
           </div>
           <button

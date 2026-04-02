@@ -168,7 +168,7 @@ export default function Apply() {
     <div className="min-h-screen bg-white" ref={topRef}>
       <header className="border-b border-brand-border px-6 py-4">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <Link to="/" className="font-display text-xl text-brand-charcoal">Insight Assist</Link>
+          <Link to="/" className="font-body text-sm font-black tracking-widest uppercase"><span className="text-brand-charcoal">INSIGHT</span><span className="text-brand-sage font-normal">ASSIST</span></Link>
           <span className="text-sm text-gray-400">Remote Medical Scribe Application</span>
         </div>
       </header>
