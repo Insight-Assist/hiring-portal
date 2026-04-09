@@ -68,7 +68,7 @@ export default function JobPosting() {
             </span>
             <span className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-brand-sage"></span>
-              $7+ USD/hour depending on experience · Contractor
+              $7–$10 USD/hour starting, depending on experience · Contractor
             </span>
           </div>
         </div>
