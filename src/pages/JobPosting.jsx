@@ -53,27 +53,42 @@ export default function JobPosting() {
         {/* Role Header */}
         <div className="mb-10">
           <p className="text-xs uppercase tracking-widest text-brand-sage font-medium mb-3">Now Hiring</p>
-          <h1 className="font-display text-5xl text-brand-charcoal mb-4 leading-tight">
+          <h1 className="font-display text-5xl text-brand-charcoal mb-6 leading-tight">
             Remote Medical Scribe<br />
             <span className="italic font-light">(Optometry)</span>
           </h1>
-          <div className="flex flex-wrap gap-4 text-sm text-gray-500 mt-5">
-            <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-brand-sage"></span>
-              Full Time
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-brand-sage"></span>
-              Remote — Argentina-based preferred
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-brand-sage"></span>
-              $7–$10 USD/hour starting, depending on experience · Contractor
-            </span>
+
+          {/* Key details — large and prominent */}
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3 mt-2">
+            <div className="flex items-center gap-2 bg-brand-cream px-4 py-2.5">
+              <span className="w-2 h-2 rounded-full bg-brand-sage flex-shrink-0"></span>
+              <span className="text-base font-medium text-brand-charcoal">Full Time</span>
+            </div>
+            <div className="flex items-center gap-2 bg-brand-cream px-4 py-2.5">
+              <span className="w-2 h-2 rounded-full bg-brand-sage flex-shrink-0"></span>
+              <span className="text-base font-medium text-brand-charcoal">Remote — Argentina-based preferred</span>
+            </div>
+            <div className="flex items-center gap-2 bg-brand-sage px-4 py-2.5">
+              <span className="w-2 h-2 rounded-full bg-white flex-shrink-0"></span>
+              <span className="text-base font-medium text-white">$7–$10 USD/hour starting, depending on experience</span>
+            </div>
           </div>
         </div>
 
         <div className="section-divider" />
+
+        {/* Benefits */}
+        <section className="mb-10">
+          <h2 className="font-display text-2xl text-brand-charcoal mb-4">Benefits</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {benefits.map(({ label, detail }) => (
+              <div key={label} className="bg-brand-cream p-5">
+                <p className="text-xs uppercase tracking-widest text-brand-sage font-medium mb-2">{label}</p>
+                <p className="text-sm text-brand-charcoal">{detail}</p>
+              </div>
+            ))}
+          </div>
+        </section>
 
         {/* Schedule */}
         <section className="mb-10">
@@ -101,19 +116,6 @@ export default function JobPosting() {
             <p className="text-xs text-gray-500 italic">
               This role combines real-time scribing, insurance verification, billing support, administrative coordination, team communication, patient communication, and general support.
             </p>
-          </div>
-        </section>
-
-        {/* Benefits */}
-        <section className="mb-10">
-          <h2 className="font-display text-2xl text-brand-charcoal mb-4">Benefits</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {benefits.map(({ label, detail }) => (
-              <div key={label} className="bg-brand-cream p-5">
-                <p className="text-xs uppercase tracking-widest text-brand-sage font-medium mb-2">{label}</p>
-                <p className="text-sm text-brand-charcoal">{detail}</p>
-              </div>
-            ))}
           </div>
         </section>
 
