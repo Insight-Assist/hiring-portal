@@ -66,11 +66,11 @@ export default function JobPosting() {
             </div>
             <div className="flex items-center gap-2 bg-brand-cream px-4 py-2.5">
               <span className="w-2 h-2 rounded-full bg-brand-sage flex-shrink-0"></span>
-              <span className="text-base font-medium text-brand-charcoal">Remote — Argentina-based preferred</span>
+              <span className="text-base font-medium text-brand-charcoal">Remote</span>
             </div>
             <div className="flex items-center gap-2 bg-brand-sage px-4 py-2.5">
               <span className="w-2 h-2 rounded-full bg-white flex-shrink-0"></span>
-              <span className="text-base font-medium text-white">$7–$10 USD/hour starting, depending on experience</span>
+              <span className="text-base font-medium text-white">$8–$11 USD/hour depending on experience</span>
             </div>
           </div>
         </div>
