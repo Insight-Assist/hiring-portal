@@ -17,7 +17,6 @@ export default function Apply() {
   const [step, setStep] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
-  const [debugInfo, setDebugInfo] = useState('')
   const topRef = useRef(null)
 
   const [form, setForm] = useState({
@@ -33,6 +32,24 @@ export default function Apply() {
   const scrollTop = () => topRef.current?.scrollIntoView({ behavior: 'smooth' })
   const updateForm = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
 
+  const initPriorityItems = trialTask.questions[3].items
+
+  const getPriorityList = () => {
+    if (taskAnswers.q4.length === 0) return initPriorityItems
+    return taskAnswers.q4.map(id => initPriorityItems.find(i => i.id === id))
+  }
+
+  const moveItem = (idx, direction) => {
+    const list = getPriorityList().map(i => i.id)
+    const newIdx = idx + direction
+    if (newIdx < 0 || newIdx >= list.length) return
+    const updated = [...list]
+    const temp = updated[idx]
+    updated[idx] = updated[newIdx]
+    updated[newIdx] = temp
+    setTaskAnswers(prev => ({ ...prev, q4: updated }))
+  }
+
   const validateStep = () => {
     if (step === 0) {
       const required = ['full_name', 'email', 'country', 'city_timezone', 'can_work_pacific', 'english_proficiency', 'why_interested', 'why_good_fit']
@@ -46,7 +63,7 @@ export default function Apply() {
         setError('Please complete all trial task questions.'); return false
       }
       if (taskAnswers.q4.length < 5) {
-        setError('Please rank all five items in the prioritization task.'); return false
+        setError('Please rank all five items using the up and down arrows.'); return false
       }
     }
     if (step === 2) {
@@ -69,37 +86,16 @@ export default function Apply() {
   const handleSubmit = async () => {
     setSubmitting(true)
     setError('')
-    setDebugInfo('')
-
     try {
-      // STEP 1: Test basic connection
-      setDebugInfo('Step 1: Testing connection...')
-      const { data: testData, error: testError } = await supabase
-        .from('applications')
-        .select('count')
-        .limit(1)
-      
-      if (testError) {
-        throw new Error(`Connection failed: ${testError.message} | code: ${testError.code} | hint: ${testError.hint}`)
-      }
-      setDebugInfo('Step 1 OK. Step 2: Uploading resume...')
-
-      // STEP 2: Upload resume
       const ext = resumeFile.name.split('.').pop()
       const fileName = `${Date.now()}_${form.full_name.replace(/\s+/g, '_')}.${ext}`
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('resumes')
         .upload(fileName, resumeFile)
+      if (uploadError) throw new Error(`Resume upload failed: ${uploadError.message}`)
 
-      if (uploadError) {
-        throw new Error(`Resume upload failed: ${uploadError.message}`)
-      }
-      setDebugInfo('Step 2 OK. Step 3: Saving application...')
-
-      // STEP 3: Calculate personality
       const personalityResult = calculatePersonality(assessmentAnswers)
 
-      // STEP 4: Insert — minimal record first to isolate issues
       const record = {
         full_name: form.full_name || null,
         email: form.email || null,
@@ -124,51 +120,25 @@ export default function Apply() {
         status: 'New',
       }
 
-      const { error: insertError } = await supabase
-        .from('applications')
-        .insert([record])
+      const { error: insertError } = await supabase.from('applications').insert([record])
+      if (insertError) throw new Error(`Submission failed: ${insertError.message}`)
 
-      if (insertError) {
-        throw new Error(`Insert failed: ${insertError.message} | code: ${insertError.code} | hint: ${insertError.hint || 'none'} | details: ${insertError.details || 'none'}`)
-      }
-
-      setDebugInfo('All steps complete!')
       navigate('/confirmation')
-
     } catch (err) {
-      console.error('Submit error full:', err)
+      console.error('Submit error:', err)
       setError(err.message)
-      setDebugInfo('')
     } finally {
       setSubmitting(false)
     }
-  }
-
-  const [dragItem, setDragItem] = useState(null)
-  const initPriorityItems = trialTask.questions[3].items
-
-  const getPriorityList = () => {
-    if (taskAnswers.q4.length === 0) return initPriorityItems
-    return taskAnswers.q4.map(id => initPriorityItems.find(i => i.id === id))
-  }
-
-  const handleDragStart = (id) => setDragItem(id)
-  const handleDrop = (targetId) => {
-    const list = getPriorityList().map(i => i.id)
-    const from = list.indexOf(dragItem)
-    const to = list.indexOf(targetId)
-    const updated = [...list]
-    updated.splice(from, 1)
-    updated.splice(to, 0, dragItem)
-    setTaskAnswers(prev => ({ ...prev, q4: updated }))
-    setDragItem(null)
   }
 
   return (
     <div className="min-h-screen bg-white" ref={topRef}>
       <header className="border-b border-brand-border px-6 py-4">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <Link to="/" className="font-body text-sm font-black tracking-widest uppercase"><span className="text-brand-charcoal">INSIGHT</span><span className="text-brand-sage font-normal">ASSIST</span></Link>
+          <Link to="/" className="font-body text-sm font-black tracking-widest uppercase">
+            <span className="text-brand-charcoal">INSIGHT</span><span className="text-brand-sage font-normal">ASSIST</span>
+          </Link>
           <span className="text-sm text-gray-400">Remote Medical Scribe Application</span>
         </div>
       </header>
@@ -197,13 +167,8 @@ export default function Apply() {
 
       <main className="max-w-3xl mx-auto px-6 py-10">
         {error && (
-          <div className="mb-6 px-4 py-3 bg-red-50 border border-red-200 text-red-700 text-xs font-mono break-all">
-            ERROR: {error}
-          </div>
-        )}
-        {debugInfo && (
-          <div className="mb-6 px-4 py-3 bg-blue-50 border border-blue-200 text-blue-700 text-xs">
-            {debugInfo}
+          <div className="mb-6 px-4 py-3 bg-red-50 border border-red-200 text-red-700 text-sm">
+            {error}
           </div>
         )}
 
@@ -213,9 +178,7 @@ export default function Apply() {
             taskAnswers={taskAnswers}
             setTaskAnswers={setTaskAnswers}
             priorityList={getPriorityList()}
-            onDragStart={handleDragStart}
-            onDrop={handleDrop}
-            dragItem={dragItem}
+            moveItem={moveItem}
           />
         )}
         {step === 2 && (
@@ -231,9 +194,7 @@ export default function Apply() {
           {step > 0 ? (
             <button onClick={prevStep} className="btn-secondary">Back</button>
           ) : (
-            <Link to="/" className="text-sm text-gray-400 hover:text-brand-charcoal transition-colors">
-              Back to posting
-            </Link>
+            <Link to="/" className="text-sm text-gray-400 hover:text-brand-charcoal transition-colors">Back to posting</Link>
           )}
           {step < TOTAL_STEPS - 1 ? (
             <button onClick={nextStep} className="btn-primary">Continue</button>
@@ -358,7 +319,7 @@ function ApplicationForm({ form, updateForm, resumeFile, setResumeFile }) {
   )
 }
 
-function TrialTaskStep({ taskAnswers, setTaskAnswers, priorityList, onDragStart, onDrop, dragItem }) {
+function TrialTaskStep({ taskAnswers, setTaskAnswers, priorityList, moveItem }) {
   const { scenario, encounterSummary, questions: tq } = trialTask
   return (
     <div>
@@ -385,26 +346,50 @@ function TrialTaskStep({ taskAnswers, setTaskAnswers, priorityList, onDragStart,
             />
           </div>
         ))}
+
+        {/* Prioritization — up/down buttons, works on all devices */}
         <div>
           <p className="text-xs uppercase tracking-widest text-brand-sage font-medium mb-2">Question 4 of 4</p>
           <p className="text-sm font-medium text-brand-charcoal mb-2 leading-relaxed">{tq[3].prompt}</p>
-          <p className="text-xs text-gray-400 mb-4">Drag to reorder from most urgent (top) to least urgent (bottom).</p>
+          <p className="text-xs text-gray-400 mb-4">Use the arrows to reorder from most urgent (top) to least urgent (bottom).</p>
+
           <div className="space-y-2">
             {priorityList.map((item, idx) => (
               <div
                 key={item.id}
-                draggable
-                onDragStart={() => onDragStart(item.id)}
-                onDragOver={e => e.preventDefault()}
-                onDrop={() => onDrop(item.id)}
-                className={`flex items-center gap-3 border border-brand-border p-3 cursor-grab bg-white select-none transition-colors ${dragItem === item.id ? 'opacity-40' : 'hover:border-brand-sage'}`}
+                className="flex items-center gap-3 border border-brand-border p-3 bg-white"
               >
-                <span className="text-xs font-medium text-brand-sage w-4">{idx + 1}</span>
-                <span className="text-gray-300 mr-1">⠿</span>
-                <span className="text-sm text-brand-charcoal">{item.text}</span>
+                {/* Position number */}
+                <span className="text-xs font-medium text-brand-sage w-4 flex-shrink-0">{idx + 1}</span>
+
+                {/* Up / Down buttons */}
+                <div className="flex flex-col gap-0.5 flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => moveItem(idx, -1)}
+                    disabled={idx === 0}
+                    className="w-7 h-7 flex items-center justify-center border border-brand-border text-brand-charcoal hover:bg-brand-cream disabled:opacity-20 disabled:cursor-not-allowed transition-colors text-xs"
+                    aria-label="Move up"
+                  >
+                    ▲
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveItem(idx, 1)}
+                    disabled={idx === priorityList.length - 1}
+                    className="w-7 h-7 flex items-center justify-center border border-brand-border text-brand-charcoal hover:bg-brand-cream disabled:opacity-20 disabled:cursor-not-allowed transition-colors text-xs"
+                    aria-label="Move down"
+                  >
+                    ▼
+                  </button>
+                </div>
+
+                {/* Item text */}
+                <span className="text-sm text-brand-charcoal leading-snug">{item.text}</span>
               </div>
             ))}
           </div>
+
           <div className="mt-4">
             <label className="form-label text-xs">Briefly explain your reasoning:</label>
             <textarea
