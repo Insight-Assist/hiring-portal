@@ -13,38 +13,92 @@ const STATUS_COLORS = {
   Rejected: 'bg-red-50 text-red-700 border-red-200',
 }
 
-const INTERVIEW_QUESTIONS = [
+const DISCUSSION_POINTS = [
   {
-    id: 'q_pressure',
-    section: 'STAR Questions',
-    label: 'Working Under Pressure',
-    prompt: '"Tell me about a time you had to keep up in a fast-paced environment."',
+    id: 'dp_intro',
+    number: '1',
+    label: 'Intro Understanding',
+    bullets: [
+      'Rural Washington State practice on the West Coast of the USA',
+      'Real-time, high-engagement scribe role — not passive',
+      'On Google Meet with the doctor all day',
+    ],
   },
   {
-    id: 'q_learning',
-    section: 'STAR Questions',
-    label: 'Learning Quickly',
+    id: 'dp_schedule',
+    number: '2',
+    label: 'Schedule Alignment',
+    bullets: [
+      'Mon–Thu: 8:00 AM – 5:00 PM PST',
+      'Friday: 8:00 AM – 2:00 PM PST (~39 hrs/week)',
+      'Option to add +1 hour on Friday to reach 40 hours',
+      'Lunch break + short breaks throughout the day, communicated with doctor',
+    ],
+  },
+  {
+    id: 'dp_workflow',
+    number: '3',
+    label: 'Workflow Expectations',
+    bullets: [
+      'On Google Meet with doctor all day',
+      'Fast-paced, real-time scribing',
+      'Completing tasks between patients',
+      'First 3–6 months: primary focus is scribing accuracy and flow',
+    ],
+  },
+  {
+    id: 'dp_fridays',
+    number: '4',
+    label: 'Admin Fridays',
+    bullets: [
+      'Every other Friday is lighter and admin-focused',
+      'Used for catch-up work and training',
+    ],
+  },
+  {
+    id: 'dp_comp',
+    number: '5',
+    label: 'Compensation Alignment',
+    bullets: [
+      'Ask candidate: "What hourly rate are you looking for?"',
+      'Role range: $8.00–$11.00 USD/hour depending on experience',
+      'Confirm expectation of consistent weekly hours',
+    ],
+  },
+  {
+    id: 'dp_communication',
+    number: '6',
+    label: 'Communication & Fit',
+    bullets: [
+      'Highly engaged virtual team environment',
+      'Expect proactive communication throughout the day',
+      'Fit matters both ways',
+    ],
+  },
+  {
+    id: 'dp_questions',
+    number: '7',
+    label: 'Candidate Questions / Curiosity',
+    bullets: [
+      'Did the candidate ask thoughtful or relevant questions about the role, workflow, or expectations?',
+    ],
+  },
+]
+
+const STAR_QUESTIONS = [
+  {
+    id: 'star_learning',
+    number: '1',
     prompt: '"Tell me about a time you had to learn something new quickly to do your job well."',
   },
   {
-    id: 'q_feedback',
-    section: 'Role Alignment',
-    label: 'Handling Feedback',
-    prompt: '"How do you handle real-time feedback or correction while working?"',
-  },
-  {
-    id: 'q_accountability',
-    section: 'Remote Work + Ownership',
-    label: 'Accountability',
-    prompt: '"How do you stay focused and accountable working remotely?"',
-  },
-  {
-    id: 'q_problemsolving',
-    section: 'Remote Work + Ownership',
-    label: 'Problem-Solving',
-    prompt: '"What do you do if you are unsure about something during a visit?"',
+    id: 'star_multitask',
+    number: '2',
+    prompt: '"Tell me about a time when you had to manage multiple responsibilities at once — such as responding to team messages, tracking tasks, and staying focused on a primary responsibility. How did you stay organized and ensure nothing was missed?"',
   },
 ]
+
+const STRENGTH_OPTIONS = ['Strong', 'Moderate', 'Weak']
 
 const RUBRIC = [
   { score: 5, label: 'Excellent', desc: 'Proactive, clear communicator, fast learner, confident under pressure' },
@@ -56,11 +110,14 @@ const RUBRIC = [
 
 const defaultInterview = () => ({
   date: '',
-  scores: {},
-  notes: {},
+  discussion_notes: {},
+  star_scores: {},
+  star_strength: {},
+  star_notes: {},
   overall: '',
-  strengths: '',
+  top_strengths: '',
   concerns: '',
+  overall_notes: '',
 })
 
 export default function AdminApplicant() {
@@ -118,7 +175,6 @@ export default function AdminApplicant() {
         interview_guide: interview,
       })
       .eq('id', id)
-
     if (!error) { setSaved(true); setTimeout(() => setSaved(false), 2500) }
     setSaving(false)
   }
@@ -129,19 +185,17 @@ export default function AdminApplicant() {
     setTotalScore(Object.values(updated).reduce((a, b) => a + Number(b || 0), 0))
   }
 
-  const setInterviewScore = (qId, val) => {
-    setInterview(prev => ({ ...prev, scores: { ...prev.scores, [qId]: val } }))
-  }
+  const setDiscussionNote = (id, val) =>
+    setInterview(prev => ({ ...prev, discussion_notes: { ...prev.discussion_notes, [id]: val } }))
 
-  const setInterviewNote = (qId, val) => {
-    setInterview(prev => ({ ...prev, notes: { ...prev.notes, [qId]: val } }))
-  }
+  const setStarScore = (id, val) =>
+    setInterview(prev => ({ ...prev, star_scores: { ...prev.star_scores, [id]: val } }))
 
-  const interviewTotal = () => {
-    const vals = Object.values(interview.scores).map(Number).filter(v => !isNaN(v) && v > 0)
-    if (!vals.length) return null
-    return (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1)
-  }
+  const setStarStrength = (id, val) =>
+    setInterview(prev => ({ ...prev, star_strength: { ...prev.star_strength, [id]: val } }))
+
+  const setStarNote = (id, val) =>
+    setInterview(prev => ({ ...prev, star_notes: { ...prev.star_notes, [id]: val } }))
 
   const formatDate = (iso) => iso
     ? new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
@@ -153,14 +207,6 @@ export default function AdminApplicant() {
   const pDominant = personalityTypes[applicant.personality_dominant]
   const pSecondary = personalityTypes[applicant.personality_secondary]
   const taskResponses = applicant.trial_task_responses || {}
-  const avg = interviewTotal()
-
-  // Group interview questions by section
-  const sections = INTERVIEW_QUESTIONS.reduce((acc, q) => {
-    if (!acc[q.section]) acc[q.section] = []
-    acc[q.section].push(q)
-    return acc
-  }, {})
 
   return (
     <div className="min-h-screen bg-white">
@@ -382,154 +428,207 @@ export default function AdminApplicant() {
               </div>
             </Section>
 
-            {/* Interview Guide */}
+            {/* ── INTERVIEW GUIDE ── */}
             <Section title="Interview Guide & Scorecard">
-              <div className="border border-brand-border">
+              <div className="border border-brand-border overflow-hidden">
 
-                {/* Guide header */}
+                {/* Header */}
                 <div className="bg-brand-charcoal px-6 py-4">
                   <p className="text-white font-display text-lg">Medical Scribe Interview Guide</p>
-                  <p className="text-brand-sage-mid text-xs mt-0.5">Dr. Beth's Team — Remote Medical Scribe (Optometry)</p>
+                  <p className="text-brand-sage-mid text-xs mt-0.5">Remote Medical Scribe · Dr. Beth's Team · Rural Washington State, USA</p>
                 </div>
 
-                <div className="p-6 space-y-8">
+                <div className="divide-y divide-brand-border">
 
-                  {/* Date */}
-                  <div className="flex items-center gap-4">
-                    <label className="text-xs uppercase tracking-widest text-brand-sage font-medium w-20 flex-shrink-0">Date</label>
+                  {/* Date row */}
+                  <div className="px-6 py-4 flex items-center gap-4 bg-white">
+                    <label className="text-xs uppercase tracking-widest text-brand-sage font-medium w-12 flex-shrink-0">Date</label>
                     <input
                       type="date"
-                      className="input-field max-w-[200px] text-sm"
+                      className="input-field max-w-[180px] text-sm py-1.5"
                       value={interview.date}
                       onChange={e => setInterview(prev => ({ ...prev, date: e.target.value }))}
                     />
                   </div>
 
-                  {/* Intro block */}
-                  <div className="bg-brand-cream p-5">
-                    <p className="text-xs uppercase tracking-widest text-brand-sage font-medium mb-3">1. Intro + Workflow Overview</p>
-                    <p className="text-xs text-gray-500 italic mb-3">Dr. Beth shares workflow and expectations with the candidate before questions begin.</p>
-                    <ul className="space-y-1.5 text-sm text-brand-charcoal">
-                      <li className="flex gap-2"><span className="text-brand-sage flex-shrink-0">•</span>Briefly explain the fast-paced clinic and real-time charting expectations</li>
-                      <li className="flex gap-2"><span className="text-brand-sage flex-shrink-0">•</span>Goal = reduce doctor mental load and support patient flow</li>
-                      <li className="flex gap-2"><span className="text-brand-sage flex-shrink-0">•</span>Share how you prefer notes structured and communication handled during visits</li>
-                    </ul>
+                  {/* ── SECTION 1: Discussion Points ── */}
+                  <div className="bg-brand-sage-light px-6 py-3">
+                    <p className="text-xs uppercase tracking-widest text-brand-forest font-medium">Section 1 — Key Discussion Points</p>
+                    <p className="text-xs text-brand-sage mt-0.5">Cover each topic with the candidate. Notes only — no scoring.</p>
                   </div>
 
-                  {/* Questions by section */}
-                  {Object.entries(sections).map(([sectionName, qs], si) => (
-                    <div key={sectionName}>
-                      <p className="text-xs uppercase tracking-widest text-brand-sage font-medium mb-4">{si + 2}. {sectionName}</p>
-                      <div className="space-y-6">
-                        {qs.map(q => (
-                          <div key={q.id} className="border border-brand-border p-5">
-                            <p className="text-sm font-medium text-brand-charcoal mb-1">{q.label}</p>
-                            <p className="text-sm text-gray-500 italic mb-4">{q.prompt}</p>
-
-                            {/* Score selector */}
-                            <div className="flex items-center gap-3 mb-4">
-                              <span className="text-xs text-gray-500 uppercase tracking-wide font-medium">Score:</span>
-                              <div className="flex gap-2">
-                                {[1, 2, 3, 4, 5].map(n => (
-                                  <button
-                                    key={n}
-                                    onClick={() => setInterviewScore(q.id, n)}
-                                    className={`w-9 h-9 text-sm font-medium border transition-colors ${
-                                      interview.scores[q.id] === n
-                                        ? 'bg-brand-forest text-white border-brand-forest'
-                                        : 'bg-white text-brand-charcoal border-brand-border hover:border-brand-sage'
-                                    }`}
-                                  >
-                                    {n}
-                                  </button>
-                                ))}
-                              </div>
-                              {interview.scores[q.id] && (
-                                <span className="text-xs text-brand-sage font-medium ml-1">
-                                  {RUBRIC.find(r => r.score === interview.scores[q.id])?.label}
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Notes */}
-                            <div>
-                              <label className="text-xs text-gray-400 uppercase tracking-wide mb-1.5 block">Notes</label>
-                              <textarea
-                                className="input-field text-sm min-h-[70px] resize-y"
-                                placeholder="Notes from this response..."
-                                value={interview.notes[q.id] || ''}
-                                onChange={e => setInterviewNote(q.id, e.target.value)}
-                              />
-                            </div>
-                          </div>
+                  {DISCUSSION_POINTS.map((dp) => (
+                    <div key={dp.id} className="px-6 py-5 bg-white">
+                      <div className="flex gap-3 mb-3">
+                        <span className="text-xs font-medium text-brand-sage flex-shrink-0 mt-0.5">{dp.number}.</span>
+                        <p className="text-sm font-medium text-brand-charcoal">{dp.label}</p>
+                      </div>
+                      <ul className="ml-5 space-y-1 mb-4">
+                        {dp.bullets.map((b, i) => (
+                          <li key={i} className="flex gap-2 text-xs text-gray-600">
+                            <span className="text-brand-sage flex-shrink-0">–</span>
+                            {b}
+                          </li>
                         ))}
+                      </ul>
+                      <div>
+                        <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Notes</label>
+                        <textarea
+                          className="input-field text-sm min-h-[64px] resize-y"
+                          placeholder="Notes from this discussion..."
+                          value={interview.discussion_notes[dp.id] || ''}
+                          onChange={e => setDiscussionNote(dp.id, e.target.value)}
+                        />
                       </div>
                     </div>
                   ))}
 
-                  {/* Rubric reference */}
-                  <div>
-                    <p className="text-xs uppercase tracking-widest text-brand-sage font-medium mb-3">Quick Grading Rubric</p>
-                    <div className="border border-brand-border overflow-hidden">
-                      {RUBRIC.map((r, i) => (
-                        <div key={r.score} className={`flex items-start gap-4 px-4 py-2.5 text-sm ${i < RUBRIC.length - 1 ? 'border-b border-brand-border' : ''}`}>
-                          <span className="font-medium text-brand-charcoal w-4 flex-shrink-0">{r.score}</span>
-                          <span className="font-medium text-brand-charcoal w-16 flex-shrink-0">{r.label}</span>
-                          <span className="text-gray-500 text-xs leading-relaxed">{r.desc}</span>
+                  {/* ── SECTION 2: STAR Questions ── */}
+                  <div className="bg-brand-sage-light px-6 py-3">
+                    <p className="text-xs uppercase tracking-widest text-brand-forest font-medium">Section 2 — STAR Questions</p>
+                    <p className="text-xs text-brand-sage mt-0.5">Rate each response 1–5 and note key observations.</p>
+                  </div>
+
+                  {/* Rubric reference — collapsed by default */}
+                  <div className="px-6 py-3 bg-white">
+                    <details>
+                      <summary className="text-xs text-brand-sage cursor-pointer hover:text-brand-forest font-medium">View Scoring Rubric (1–5)</summary>
+                      <div className="mt-3 border border-brand-border overflow-hidden">
+                        {RUBRIC.map((r, i) => (
+                          <div key={r.score} className={`flex items-start gap-4 px-4 py-2 text-xs ${i < RUBRIC.length - 1 ? 'border-b border-brand-border' : ''}`}>
+                            <span className="font-medium text-brand-charcoal w-4 flex-shrink-0">{r.score}</span>
+                            <span className="font-medium text-brand-charcoal w-16 flex-shrink-0">{r.label}</span>
+                            <span className="text-gray-500 leading-relaxed">{r.desc}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  </div>
+
+                  {STAR_QUESTIONS.map((q) => (
+                    <div key={q.id} className="px-6 py-5 bg-white">
+                      <div className="flex gap-3 mb-3">
+                        <span className="text-xs font-medium text-brand-sage flex-shrink-0 mt-0.5">Q{q.number}.</span>
+                        <p className="text-sm text-brand-charcoal italic leading-relaxed">{q.prompt}</p>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                        {/* Score */}
+                        <div>
+                          <label className="text-xs text-gray-400 uppercase tracking-wide mb-2 block">Rating (1–5)</label>
+                          <div className="flex gap-2">
+                            {[1, 2, 3, 4, 5].map(n => (
+                              <button
+                                key={n}
+                                type="button"
+                                onClick={() => setStarScore(q.id, n)}
+                                className={`w-9 h-9 text-sm font-medium border transition-colors ${
+                                  interview.star_scores[q.id] === n
+                                    ? 'bg-brand-forest text-white border-brand-forest'
+                                    : 'bg-white text-brand-charcoal border-brand-border hover:border-brand-sage'
+                                }`}
+                              >
+                                {n}
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                      ))}
+
+                        {/* Strength */}
+                        <div>
+                          <label className="text-xs text-gray-400 uppercase tracking-wide mb-2 block">Strength</label>
+                          <div className="flex gap-2">
+                            {STRENGTH_OPTIONS.map(opt => (
+                              <button
+                                key={opt}
+                                type="button"
+                                onClick={() => setStarStrength(q.id, opt)}
+                                className={`px-3 py-1.5 text-xs font-medium border transition-colors ${
+                                  interview.star_strength[q.id] === opt
+                                    ? 'bg-brand-forest text-white border-brand-forest'
+                                    : 'bg-white text-brand-charcoal border-brand-border hover:border-brand-sage'
+                                }`}
+                              >
+                                {opt}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Notes</label>
+                        <textarea
+                          className="input-field text-sm min-h-[72px] resize-y"
+                          placeholder="Key observations from this response..."
+                          value={interview.star_notes[q.id] || ''}
+                          onChange={e => setStarNote(q.id, e.target.value)}
+                        />
+                      </div>
                     </div>
+                  ))}
+
+                  {/* ── SECTION 3: Overall Impression ── */}
+                  <div className="bg-brand-sage-light px-6 py-3">
+                    <p className="text-xs uppercase tracking-widest text-brand-forest font-medium">Section 3 — Overall Impression</p>
                   </div>
 
-                  {/* Average score */}
-                  {avg && (
-                    <div className="flex items-center gap-3 bg-brand-sage-light border border-brand-sage-mid px-5 py-3">
-                      <span className="text-xs uppercase tracking-widest text-brand-sage font-medium">Average Score</span>
-                      <span className="font-display text-2xl text-brand-charcoal">{avg}</span>
-                      <span className="text-xs text-gray-500">/ 5.0 across {Object.keys(interview.scores).length} questions</span>
-                    </div>
-                  )}
+                  <div className="px-6 py-5 bg-white space-y-5">
 
-                  {/* Overall impression */}
-                  <div>
-                    <p className="text-xs uppercase tracking-widest text-brand-sage font-medium mb-3">Overall Impression</p>
-                    <div className="flex flex-wrap gap-3">
-                      {['Strong Hire', 'Hire', 'Maybe', 'No'].map(opt => (
-                        <button
-                          key={opt}
-                          onClick={() => setInterview(prev => ({ ...prev, overall: opt }))}
-                          className={`px-4 py-2 text-sm font-medium border transition-colors ${
-                            interview.overall === opt
-                              ? 'bg-brand-forest text-white border-brand-forest'
-                              : 'bg-white text-brand-charcoal border-brand-border hover:border-brand-sage'
-                          }`}
-                        >
-                          {opt}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Strengths + Concerns */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    {/* Overall recommendation */}
                     <div>
-                      <label className="text-xs uppercase tracking-widest text-brand-sage font-medium mb-2 block">Key Strengths</label>
+                      <label className="text-xs text-gray-400 uppercase tracking-wide mb-2 block">Overall Recommendation</label>
+                      <div className="flex flex-wrap gap-2">
+                        {['Strong Yes', 'Yes', 'Maybe', 'No'].map(opt => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setInterview(prev => ({ ...prev, overall: opt }))}
+                            className={`px-4 py-2 text-sm font-medium border transition-colors ${
+                              interview.overall === opt
+                                ? 'bg-brand-forest text-white border-brand-forest'
+                                : 'bg-white text-brand-charcoal border-brand-border hover:border-brand-sage'
+                            }`}
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Strengths + Concerns side by side */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Top Strengths</label>
+                        <textarea
+                          className="input-field text-sm min-h-[90px] resize-y"
+                          placeholder="What stood out positively..."
+                          value={interview.top_strengths}
+                          onChange={e => setInterview(prev => ({ ...prev, top_strengths: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Potential Concerns</label>
+                        <textarea
+                          className="input-field text-sm min-h-[90px] resize-y"
+                          placeholder="Any hesitations or red flags..."
+                          value={interview.concerns}
+                          onChange={e => setInterview(prev => ({ ...prev, concerns: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Overall notes */}
+                    <div>
+                      <label className="text-xs text-gray-400 uppercase tracking-wide mb-1 block">Additional Notes</label>
                       <textarea
-                        className="input-field text-sm min-h-[100px] resize-y"
-                        placeholder="What stood out positively..."
-                        value={interview.strengths}
-                        onChange={e => setInterview(prev => ({ ...prev, strengths: e.target.value }))}
+                        className="input-field text-sm min-h-[80px] resize-y"
+                        placeholder="Any other observations..."
+                        value={interview.overall_notes}
+                        onChange={e => setInterview(prev => ({ ...prev, overall_notes: e.target.value }))}
                       />
                     </div>
-                    <div>
-                      <label className="text-xs uppercase tracking-widest text-brand-sage font-medium mb-2 block">Concerns</label>
-                      <textarea
-                        className="input-field text-sm min-h-[100px] resize-y"
-                        placeholder="Any hesitations or red flags..."
-                        value={interview.concerns}
-                        onChange={e => setInterview(prev => ({ ...prev, concerns: e.target.value }))}
-                      />
-                    </div>
+
                   </div>
 
                 </div>
