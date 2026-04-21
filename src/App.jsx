@@ -6,6 +6,7 @@ import Confirmation from './pages/Confirmation'
 import AdminLogin from './pages/AdminLogin'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminApplicant from './pages/AdminApplicant'
+import PrintApplicant from './pages/PrintApplicant'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -29,6 +30,9 @@ export default function App() {
       } />
       <Route path="/admin/applicant/:id" element={
         <ProtectedRoute><AdminApplicant /></ProtectedRoute>
+      } />
+      <Route path="/admin/print/:id" element={
+        <ProtectedRoute><PrintApplicant /></ProtectedRoute>
       } />
     </Routes>
   )

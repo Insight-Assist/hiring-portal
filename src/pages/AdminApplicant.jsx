@@ -219,6 +219,14 @@ export default function AdminApplicant() {
           </div>
           <div className="flex items-center gap-3">
             {saved && <span className="text-brand-sage text-xs">Saved ✓</span>}
+            <a
+              href={`/admin/print/${id}?mode=both`}
+              target="_blank"
+              rel="noreferrer"
+              className="border border-gray-500 text-gray-300 hover:text-white hover:border-white px-4 py-2 text-sm transition-colors"
+            >
+              Print / PDF ↗
+            </a>
             <button onClick={saveChanges} disabled={saving} className="bg-brand-sage text-white px-4 py-2 text-sm hover:bg-brand-forest transition-colors disabled:opacity-50">
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
