@@ -31,7 +31,7 @@ export default function AdminDashboard() {
     setLoading(true)
     const { data, error } = await supabase
       .from('applications')
-      .select('id, full_name, email, country, city_timezone, status, submitted_at, personality_dominant, exp_scribing, exp_insurance, can_work_pacific')
+      .select('id, full_name, email, country, city_timezone, status, submitted_at, personality_dominant, exp_scribing, exp_insurance, can_work_pacific, recommendation')
       .order('submitted_at', { ascending: false })
 
     if (!error) setApplicants(data || [])
@@ -148,6 +148,7 @@ export default function AdminDashboard() {
                     { label: 'Scribing Exp', field: 'exp_scribing' },
                     { label: 'Personality', field: 'personality_dominant' },
                     { label: 'Status', field: 'status' },
+                    { label: 'Recommendation', field: 'recommendation' },
                     { label: 'Submitted', field: 'submitted_at' },
                     { label: '', field: null },
                   ].map(({ label, field }) => (
@@ -193,6 +194,19 @@ export default function AdminDashboard() {
                         <span className={`text-xs font-medium px-2 py-1 border rounded-sm ${STATUS_COLORS[a.status] || 'bg-gray-50 text-gray-500 border-gray-200'}`}>
                           {a.status}
                         </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        {a.recommendation ? (
+                          <span className={`text-xs font-medium px-2 py-1 border rounded-sm ${
+                            a.recommendation === 'Strong Yes' ? 'bg-green-50 text-green-700 border-green-200' :
+                            a.recommendation === 'Yes' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                            a.recommendation === 'Maybe' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                            a.recommendation === 'No' ? 'bg-red-50 text-red-700 border-red-200' :
+                            'bg-gray-50 text-gray-500 border-gray-200'
+                          }`}>
+                            {a.recommendation}
+                          </span>
+                        ) : <span className="text-xs text-gray-300">—</span>}
                       </td>
                       <td className="px-4 py-3 text-xs text-gray-400">{formatDate(a.submitted_at)}</td>
                       <td className="px-4 py-3">
