@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { personalityTypes } from '../data/assessment'
 import { trialTask } from '../data/trialTask'
+import { trialTaskOptical } from '../data/trialTaskOptical'
 
 const STATUS_OPTIONS = ['New', 'Reviewed', 'Interview', 'Hold', 'Rejected']
 const STATUS_COLORS = {
@@ -362,78 +363,23 @@ export default function AdminApplicant() {
               </div>
             </Section>
 
-            {/* Trial Task */}
+            {/* Trial Task — role-aware */}
             <Section title="Trial Task Responses">
-              <div className="mb-4 flex items-center justify-between">
-                <p className="text-sm text-gray-500">Score each response using the rubric. Total is out of 100 points.</p>
-                {totalScore !== null && (
-                  <div className="text-right">
-                    <span className="text-2xl font-display text-brand-charcoal">{totalScore}</span>
-                    <span className="text-sm text-gray-400">/100</span>
-                  </div>
-                )}
-              </div>
-              <div className="space-y-8">
-                {trialTask.questions.map((q, qi) => {
-                  const qKey = `q${qi + 1}`
-                  const response = qi < 3 ? taskResponses[qKey] : null
-                  const priorityIds = taskResponses.q4 || []
-                  const priorityItems = trialTask.questions[3].items
-                  const maxPts = q.rubric.maxPoints
-                  return (
-                    <div key={q.id} className="border border-brand-border p-5">
-                      <div className="flex items-start justify-between gap-4 mb-3">
-                        <p className="text-xs uppercase tracking-widest text-brand-sage font-medium">Question {qi + 1}</p>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <label className="text-xs text-gray-400">Score:</label>
-                          <input type="number" min="0" max={maxPts} className="w-16 border border-brand-border px-2 py-1 text-sm text-center focus:outline-none focus:border-brand-sage" value={taskScores[qKey] ?? ''} onChange={e => updateScore(qKey, e.target.value)} />
-                          <span className="text-xs text-gray-400">/ {maxPts}</span>
-                        </div>
-                      </div>
-                      <p className="text-sm font-medium text-brand-charcoal mb-3 leading-relaxed">{q.prompt}</p>
-                      {qi < 3 && (
-                        <div className="bg-brand-cream p-4 mb-4 text-sm text-brand-charcoal leading-relaxed whitespace-pre-wrap min-h-[60px]">
-                          {response || <span className="text-gray-400 italic">No response</span>}
-                        </div>
-                      )}
-                      {qi === 3 && (
-                        <div className="bg-brand-cream p-4 mb-4">
-                          {priorityIds.length > 0 ? (
-                            <ol className="space-y-1">
-                              {priorityIds.map((pid, idx) => {
-                                const item = priorityItems.find(i => i.id === pid)
-                                return <li key={pid} className="text-sm text-brand-charcoal flex gap-2"><span className="text-brand-sage font-medium">{idx + 1}.</span>{item?.text}</li>
-                              })}
-                            </ol>
-                          ) : <span className="text-gray-400 italic text-sm">No response</span>}
-                          {taskResponses.q4_reasoning && (
-                            <div className="mt-3 pt-3 border-t border-brand-border">
-                              <p className="text-xs text-gray-500 mb-1">Reasoning:</p>
-                              <p className="text-sm text-brand-charcoal">{taskResponses.q4_reasoning}</p>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      <details className="text-xs">
-                        <summary className="text-brand-sage cursor-pointer hover:text-brand-forest font-medium">View Scoring Rubric</summary>
-                        <div className="mt-3 space-y-1.5 pl-2">
-                          {q.rubric.keyItems?.map((item, i) => (
-                            <div key={i} className="flex justify-between gap-2 text-gray-600">
-                              <span>• {item.item}</span><span className="flex-shrink-0 font-medium text-brand-charcoal">+{item.points}</span>
-                            </div>
-                          ))}
-                          {q.rubric.bonusItems?.map((item, i) => (
-                            <div key={i} className="flex justify-between gap-2 text-brand-sage">
-                              <span>★ Bonus: {item.item}</span><span className="flex-shrink-0 font-medium">+{item.points}</span>
-                            </div>
-                          ))}
-                          {q.rubric.notes && <p className="text-gray-400 italic mt-2 leading-relaxed">{q.rubric.notes}</p>}
-                        </div>
-                      </details>
-                    </div>
-                  )
-                })}
-              </div>
+              {applicant.role === 'optical-technician' ? (
+                <OpticalTrialTaskSection
+                  taskResponses={taskResponses}
+                  taskScores={taskScores}
+                  totalScore={totalScore}
+                  updateScore={updateScore}
+                />
+              ) : (
+                <ScribeTrialTaskSection
+                  taskResponses={taskResponses}
+                  taskScores={taskScores}
+                  totalScore={totalScore}
+                  updateScore={updateScore}
+                />
+              )}
             </Section>
 
             {/* ── INTERVIEW GUIDE ── */}
@@ -665,6 +611,170 @@ export default function AdminApplicant() {
     </div>
   )
 }
+
+// ── Scribe trial task (4 questions with priority drag) ──
+function ScribeTrialTaskSection({ taskResponses, taskScores, totalScore, updateScore }) {
+  return (
+    <div>
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-sm text-gray-500">Score each response using the rubric. Total is out of 100 points.</p>
+        {totalScore !== null && (
+          <div className="text-right">
+            <span className="text-2xl font-display text-brand-charcoal">{totalScore}</span>
+            <span className="text-sm text-gray-400">/100</span>
+          </div>
+        )}
+      </div>
+      <div className="space-y-8">
+        {trialTask.questions.map((q, qi) => {
+          const qKey = `q${qi + 1}`
+          const response = qi < 3 ? taskResponses[qKey] : null
+          const priorityIds = taskResponses.q4 || []
+          const priorityItems = trialTask.questions[3].items
+          const maxPts = q.rubric.maxPoints
+          return (
+            <div key={q.id} className="border border-brand-border p-5">
+              <div className="flex items-start justify-between gap-4 mb-3">
+                <p className="text-xs uppercase tracking-widest text-brand-sage font-medium">Question {qi + 1}</p>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <label className="text-xs text-gray-400">Score:</label>
+                  <input type="number" min="0" max={maxPts} className="w-16 border border-brand-border px-2 py-1 text-sm text-center focus:outline-none focus:border-brand-sage" value={taskScores[qKey] ?? ''} onChange={e => updateScore(qKey, e.target.value)} />
+                  <span className="text-xs text-gray-400">/ {maxPts}</span>
+                </div>
+              </div>
+              <p className="text-sm font-medium text-brand-charcoal mb-3 leading-relaxed">{q.prompt}</p>
+              {qi < 3 && (
+                <div className="bg-brand-cream p-4 mb-4 text-sm text-brand-charcoal leading-relaxed whitespace-pre-wrap min-h-[60px]">
+                  {response || <span className="text-gray-400 italic">No response</span>}
+                </div>
+              )}
+              {qi === 3 && (
+                <div className="bg-brand-cream p-4 mb-4">
+                  {priorityIds.length > 0 ? (
+                    <ol className="space-y-1">
+                      {priorityIds.map((pid, idx) => {
+                        const item = priorityItems.find(i => i.id === pid)
+                        return <li key={pid} className="text-sm text-brand-charcoal flex gap-2"><span className="text-brand-sage font-medium">{idx + 1}.</span>{item?.text}</li>
+                      })}
+                    </ol>
+                  ) : <span className="text-gray-400 italic text-sm">No response</span>}
+                  {taskResponses.q4_reasoning && (
+                    <div className="mt-3 pt-3 border-t border-brand-border">
+                      <p className="text-xs text-gray-500 mb-1">Reasoning:</p>
+                      <p className="text-sm text-brand-charcoal">{taskResponses.q4_reasoning}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+              <details className="text-xs">
+                <summary className="text-brand-sage cursor-pointer hover:text-brand-forest font-medium">View Scoring Rubric</summary>
+                <div className="mt-3 space-y-1.5 pl-2">
+                  {q.rubric.keyItems?.map((item, i) => (
+                    <div key={i} className="flex justify-between gap-2 text-gray-600">
+                      <span>• {item.item}</span><span className="flex-shrink-0 font-medium text-brand-charcoal">+{item.points}</span>
+                    </div>
+                  ))}
+                  {q.rubric.bonusItems?.map((item, i) => (
+                    <div key={i} className="flex justify-between gap-2 text-brand-sage">
+                      <span>★ Bonus: {item.item}</span><span className="flex-shrink-0 font-medium">+{item.points}</span>
+                    </div>
+                  ))}
+                  {q.rubric.notes && <p className="text-gray-400 italic mt-2 leading-relaxed">{q.rubric.notes}</p>}
+                </div>
+              </details>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ── Optical trial task (3 questions: 2 math, 1 sales) ──
+function OpticalTrialTaskSection({ taskResponses, taskScores, totalScore, updateScore }) {
+  const maxPoints = [35, 30, 35]
+  const answerKeys = [
+    { label: 'Correct answer', value: 'Frame: $289 - $150 = $139.00 out of pocket · Lenses: $0.00 (covered) · Total: $139.00' },
+    { label: 'Correct answer', value: 'AR: $85 x 20% = $17 discount → $68.00 out of pocket · Total: $139 + $0 + $68 = $207.00' },
+    null,
+  ]
+
+  return (
+    <div>
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-sm text-gray-500">Score each response using the rubric. Total is out of 100 points.</p>
+        {totalScore !== null && (
+          <div className="text-right">
+            <span className="text-2xl font-display text-brand-charcoal">{totalScore}</span>
+            <span className="text-sm text-gray-400">/100</span>
+          </div>
+        )}
+      </div>
+
+      {/* Scenario reminder */}
+      <div className="bg-brand-cream border border-brand-border p-4 mb-6 text-xs text-brand-forest font-mono leading-relaxed">
+        <p className="text-xs uppercase tracking-widest text-brand-sage font-sans font-medium mb-2">Scenario Reference — Sandra's VSP Benefits</p>
+        <p>Frame allowance: $150.00 · Single vision lenses: covered in full</p>
+        <p>Lens enhancements / AR coating: 20% off retail</p>
+        <p>Frame selected: $289.00 · Lenses: $120.00 · AR coating: $85.00</p>
+      </div>
+
+      <div className="space-y-8">
+        {trialTaskOptical.questions.map((q, qi) => {
+          const qKey = `q${qi + 1}`
+          const response = taskResponses[qKey] || ''
+          const maxPts = maxPoints[qi]
+          const answerKey = answerKeys[qi]
+
+          return (
+            <div key={q.id} className="border border-brand-border p-5">
+              <div className="flex items-start justify-between gap-4 mb-3">
+                <p className="text-xs uppercase tracking-widest text-brand-sage font-medium">Question {qi + 1}</p>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <label className="text-xs text-gray-400">Score:</label>
+                  <input type="number" min="0" max={maxPts} className="w-16 border border-brand-border px-2 py-1 text-sm text-center focus:outline-none focus:border-brand-sage" value={taskScores[qKey] ?? ''} onChange={e => updateScore(qKey, e.target.value)} />
+                  <span className="text-xs text-gray-400">/ {maxPts}</span>
+                </div>
+              </div>
+
+              <p className="text-sm font-medium text-brand-charcoal mb-3 leading-relaxed">{q.prompt}</p>
+
+              {/* Candidate response */}
+              <div className="bg-brand-cream p-4 mb-4 text-sm text-brand-charcoal leading-relaxed whitespace-pre-wrap min-h-[60px] font-mono">
+                {response || <span className="text-gray-400 italic font-sans">No response</span>}
+              </div>
+
+              {/* Answer key for math questions */}
+              {answerKey && (
+                <div className="bg-green-50 border border-green-200 px-4 py-2 mb-4 text-xs text-green-800">
+                  <span className="font-medium">{answerKey.label}:</span> {answerKey.value}
+                </div>
+              )}
+
+              {/* Rubric */}
+              <details className="text-xs">
+                <summary className="text-brand-sage cursor-pointer hover:text-brand-forest font-medium">View Scoring Rubric</summary>
+                <div className="mt-3 space-y-1.5 pl-2">
+                  {q.rubric.keyItems?.map((item, i) => (
+                    <div key={i} className="flex justify-between gap-2 text-gray-600">
+                      <span>• {item.item}</span><span className="flex-shrink-0 font-medium text-brand-charcoal">+{item.points}</span>
+                    </div>
+                  ))}
+                  {q.rubric.bonusItems?.map((item, i) => (
+                    <div key={i} className="flex justify-between gap-2 text-brand-sage">
+                      <span>★ Bonus: {item.item}</span><span className="flex-shrink-0 font-medium">+{item.points}</span>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 
 function Section({ title, children }) {
   return (

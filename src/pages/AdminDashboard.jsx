@@ -23,7 +23,7 @@ export default function AdminDashboard() {
   const { signOut } = useAuth()
   const [applicants, setApplicants] = useState([])
   const [loading, setLoading] = useState(true)
-  const [statusFilter, setStatusFilter] = useState('All')
+  const [statusFilter, setStatusFilter] = useState('New')
   const [search, setSearch] = useState('')
   const [sortField, setSortField] = useState('submitted_at')
   const [sortDir, setSortDir] = useState('desc')
