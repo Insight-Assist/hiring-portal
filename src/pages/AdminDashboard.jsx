@@ -13,6 +13,10 @@ const STATUS_COLORS = {
 }
 
 const ALL_STATUSES = ['All', 'New', 'Reviewed', 'Interview', 'Hold', 'Rejected']
+const ROLE_LABELS = {
+  'optical-technician': 'Optical Tech',
+  'scribe': 'Medical Scribe',
+}
 
 export default function AdminDashboard() {
   const { signOut } = useAuth()
@@ -22,6 +26,7 @@ export default function AdminDashboard() {
   const [search, setSearch] = useState('')
   const [sortField, setSortField] = useState('submitted_at')
   const [sortDir, setSortDir] = useState('desc')
+  const [roleFilter, setRoleFilter] = useState('All')
 
   useEffect(() => {
     fetchApplicants()
@@ -31,7 +36,7 @@ export default function AdminDashboard() {
     setLoading(true)
     const { data, error } = await supabase
       .from('applications')
-      .select('id, full_name, email, country, city_timezone, status, submitted_at, personality_dominant, exp_scribing, exp_insurance, can_work_pacific, recommendation')
+      .select('id, full_name, email, country, city_timezone, status, submitted_at, personality_dominant, exp_scribing, exp_insurance, can_work_pacific, recommendation, role')
       .order('submitted_at', { ascending: false })
 
     if (!error) setApplicants(data || [])
@@ -40,6 +45,7 @@ export default function AdminDashboard() {
 
   const filtered = applicants
     .filter(a => statusFilter === 'All' || a.status === statusFilter)
+    .filter(a => roleFilter === 'All' || (roleFilter === 'scribe' ? !a.role || a.role === 'scribe' : a.role === roleFilter))
     .filter(a => {
       if (!search) return true
       const s = search.toLowerCase()
@@ -115,6 +121,21 @@ export default function AdminDashboard() {
             onChange={e => setSearch(e.target.value)}
           />
           <div className="flex gap-1 flex-wrap">
+            {['All', 'scribe', 'optical-technician'].map(r => (
+              <button
+                key={r}
+                onClick={() => setRoleFilter(r)}
+                className={`px-3 py-1.5 text-xs font-medium border transition-colors ${
+                  roleFilter === r
+                    ? 'bg-brand-sage text-white border-brand-sage'
+                    : 'bg-white text-gray-500 border-brand-border hover:border-brand-sage'
+                }`}
+              >
+                {r === 'All' ? 'All Roles' : r === 'scribe' ? 'Medical Scribe' : 'Optical Tech'}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-1 flex-wrap">
             {ALL_STATUSES.map(s => (
               <button
                 key={s}
@@ -143,6 +164,7 @@ export default function AdminDashboard() {
                 <tr className="bg-brand-cream border-b border-brand-border">
                   {[
                     { label: 'Name', field: 'full_name' },
+                    { label: 'Role', field: 'role' },
                     { label: 'Location', field: 'country' },
                     { label: 'Pacific Time', field: 'can_work_pacific' },
                     { label: 'Scribing Exp', field: 'exp_scribing' },
@@ -171,6 +193,11 @@ export default function AdminDashboard() {
                       <td className="px-4 py-3">
                         <p className="font-medium text-brand-charcoal">{a.full_name}</p>
                         <p className="text-xs text-gray-400">{a.email}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-xs text-gray-500">
+                          {ROLE_LABELS[a.role] || 'Medical Scribe'}
+                        </span>
                       </td>
                       <td className="px-4 py-3 text-gray-600">
                         <p>{a.country}</p>

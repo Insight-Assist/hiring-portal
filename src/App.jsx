@@ -1,7 +1,10 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './lib/AuthContext'
+import JobsIndex from './pages/JobsIndex'
 import JobPosting from './pages/JobPosting'
+import JobPostingOptical from './pages/JobPostingOptical'
 import Apply from './pages/Apply'
+import ApplyOptical from './pages/ApplyOptical'
 import Confirmation from './pages/Confirmation'
 import AdminLogin from './pages/AdminLogin'
 import AdminDashboard from './pages/AdminDashboard'
@@ -21,19 +24,22 @@ function ProtectedRoute({ children }) {
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<JobPosting />} />
+      {/* Job listings */}
+      <Route path="/" element={<JobsIndex />} />
+      <Route path="/jobs" element={<JobsIndex />} />
+      <Route path="/jobs/scribe" element={<JobPosting />} />
+      <Route path="/jobs/optical" element={<JobPostingOptical />} />
+
+      {/* Applications */}
       <Route path="/apply" element={<Apply />} />
+      <Route path="/apply/optical" element={<ApplyOptical />} />
       <Route path="/confirmation" element={<Confirmation />} />
+
+      {/* Admin */}
       <Route path="/admin/login" element={<AdminLogin />} />
-      <Route path="/admin" element={
-        <ProtectedRoute><AdminDashboard /></ProtectedRoute>
-      } />
-      <Route path="/admin/applicant/:id" element={
-        <ProtectedRoute><AdminApplicant /></ProtectedRoute>
-      } />
-      <Route path="/admin/print/:id" element={
-        <ProtectedRoute><PrintApplicant /></ProtectedRoute>
-      } />
+      <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/applicant/:id" element={<ProtectedRoute><AdminApplicant /></ProtectedRoute>} />
+      <Route path="/admin/print/:id" element={<ProtectedRoute><PrintApplicant /></ProtectedRoute>} />
     </Routes>
   )
 }
