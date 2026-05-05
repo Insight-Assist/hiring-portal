@@ -34,7 +34,7 @@ export default function ApplyOptical() {
 
   const validateStep = () => {
     if (step === 0) {
-      const required = ['full_name', 'email', 'city_timezone', 'can_work_pacific', 'english_proficiency', 'availability_date', 'why_environment', 'why_excited']
+      const required = ['full_name', 'email', 'city_timezone', 'can_work_pacific', 'availability_date', 'why_environment', 'why_excited']
       for (const f of required) {
         if (!form[f]) { setError('Please complete all required fields.'); return false }
       }
@@ -75,7 +75,7 @@ export default function ApplyOptical() {
         country: form.country || null,
         city_timezone: form.city_timezone || null,
         can_work_pacific: form.can_work_pacific || null,
-        english_proficiency: form.english_proficiency || null,
+        english_proficiency: null,
         why_interested: form.why_environment || null,
         why_good_fit: form.why_excited || null,
         linkedin_url: form.linkedin_url || null,
@@ -203,17 +203,6 @@ function ApplicationForm({ form, updateForm }) {
               </label>
             ))}
           </div>
-        </div>
-
-        <div>
-          <label className="form-label">English Proficiency *</label>
-          <select className="input-field" value={form.english_proficiency} onChange={e => updateForm('english_proficiency', e.target.value)}>
-            <option value="">Select...</option>
-            <option>Basic</option>
-            <option>Intermediate</option>
-            <option>Advanced</option>
-            <option>Fluent / Native</option>
-          </select>
         </div>
 
         <div>
