@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { personalityTypes } from '../data/assessment'
+import { getJobStatus, setJobStatus } from '../lib/jobStatus'
 
 const STATUS_COLORS = {
   New: 'bg-blue-50 text-blue-700 border-blue-200',
@@ -27,9 +28,17 @@ export default function AdminDashboard() {
   const [sortField, setSortField] = useState('submitted_at')
   const [sortDir, setSortDir] = useState('desc')
   const [roleFilter, setRoleFilter] = useState('All')
+  const [jobStatuses, setJobStatuses] = useState({ scribe: true, 'optical-technician': true })
+  const [togglingRole, setTogglingRole] = useState(null)
 
   useEffect(() => {
     fetchApplicants()
+    Promise.all([
+      getJobStatus('scribe'),
+      getJobStatus('optical-technician'),
+    ]).then(([scribe, optical]) => {
+      setJobStatuses({ scribe, 'optical-technician': optical })
+    })
   }, [])
 
   const fetchApplicants = async () => {
@@ -109,6 +118,37 @@ export default function AdminDashboard() {
               <p className="text-xs text-brand-sage">Total</p>
             </div>
           </div>
+        </div>
+
+        {/* Job Status Toggles */}
+        <div className="flex flex-wrap gap-3 mb-6">
+          {[
+            { role: 'scribe', label: 'Medical Scribe (Remote)' },
+            { role: 'optical-technician', label: 'Optical Tech (Newport, WA)' },
+          ].map(({ role, label }) => {
+            const isOpen = jobStatuses[role]
+            return (
+              <div key={role} className="flex items-center gap-3 border border-brand-border px-4 py-2.5">
+                <div>
+                  <p className="text-xs font-medium text-brand-charcoal">{label}</p>
+                  <p className={`text-xs mt-0.5 ${isOpen ? 'text-green-600' : 'text-red-400'}`}>
+                    {isOpen ? 'Accepting applications' : 'Position closed'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => toggleJobStatus(role)}
+                  disabled={togglingRole === role}
+                  className={`ml-2 px-3 py-1 text-xs font-medium border transition-colors disabled:opacity-50 ${
+                    isOpen
+                      ? 'border-red-200 text-red-600 hover:bg-red-50'
+                      : 'border-green-200 text-green-600 hover:bg-green-50'
+                  }`}
+                >
+                  {togglingRole === role ? '...' : isOpen ? 'Close Position' : 'Reopen Position'}
+                </button>
+              </div>
+            )
+          })}
         </div>
 
         {/* Filters */}

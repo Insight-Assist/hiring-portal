@@ -26,7 +26,6 @@ export default function ApplyOptical() {
     why_environment: '', why_excited: '',
     linkedin_url: '',
   })
-  const [resumeFile, setResumeFile] = useState(null)
   const [taskAnswers, setTaskAnswers] = useState({ q1: '', q2: '', q3: '' })
   const [assessmentAnswers, setAssessmentAnswers] = useState(Array(questions.length).fill(null))
 
@@ -39,7 +38,6 @@ export default function ApplyOptical() {
       for (const f of required) {
         if (!form[f]) { setError('Please complete all required fields.'); return false }
       }
-      if (!resumeFile) { setError('Please upload your resume.'); return false }
     }
     if (step === 1) {
       if (!taskAnswers.q1.trim() || !taskAnswers.q2.trim() || !taskAnswers.q3.trim()) {
@@ -67,13 +65,6 @@ export default function ApplyOptical() {
     setSubmitting(true)
     setError('')
     try {
-      const ext = resumeFile.name.split('.').pop()
-      const fileName = `${Date.now()}_${form.full_name.replace(/\s+/g, '_')}.${ext}`
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('resumes')
-        .upload(fileName, resumeFile)
-      if (uploadError) throw new Error(`Resume upload failed: ${uploadError.message}`)
-
       const personalityResult = calculatePersonality(assessmentAnswers)
 
       const record = {
@@ -88,7 +79,7 @@ export default function ApplyOptical() {
         why_interested: form.why_environment || null,
         why_good_fit: form.why_excited || null,
         linkedin_url: form.linkedin_url || null,
-        resume_path: uploadData.path,
+        resume_path: null,
         trial_task_responses: { ...taskAnswers, role: 'optical-technician' },
         assessment_answers: assessmentAnswers,
         personality_dominant: personalityResult.dominant || null,
@@ -101,7 +92,8 @@ export default function ApplyOptical() {
       const { error: insertError } = await supabase.from('applications').insert([record])
       if (insertError) throw new Error(`Submission failed: ${insertError.message}`)
 
-      navigate('/confirmation')
+      const ref = 'NVS-' + Date.now().toString(36).toUpperCase().slice(-5) + Math.random().toString(36).toUpperCase().slice(2, 4)
+      navigate(`/confirmation?ref=${ref}`)
     } catch (err) {
       console.error('Submit error:', err)
       setError(err.message)
@@ -121,7 +113,6 @@ export default function ApplyOptical() {
         </div>
       </header>
 
-      {/* Progress */}
       <div className="border-b border-brand-border">
         <div className="max-w-3xl mx-auto px-6 py-4">
           <div className="flex items-center gap-2">
@@ -149,10 +140,10 @@ export default function ApplyOptical() {
           <div className="mb-6 px-4 py-3 bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>
         )}
 
-        {step === 0 && <ApplicationForm form={form} updateForm={updateForm} resumeFile={resumeFile} setResumeFile={setResumeFile} />}
+        {step === 0 && <ApplicationForm form={form} updateForm={updateForm} />}
         {step === 1 && <TrialTaskStep taskAnswers={taskAnswers} setTaskAnswers={setTaskAnswers} />}
         {step === 2 && <AssessmentStep questions={shuffledQuestions} answers={assessmentAnswers} setAnswers={setAssessmentAnswers} />}
-        {step === 3 && <ReviewStep form={form} resumeFile={resumeFile} />}
+        {step === 3 && <ReviewStep form={form} />}
 
         <div className="mt-10 flex justify-between items-center border-t border-brand-border pt-6">
           {step > 0 ? (
@@ -173,7 +164,7 @@ export default function ApplyOptical() {
   )
 }
 
-function ApplicationForm({ form, updateForm, resumeFile, setResumeFile }) {
+function ApplicationForm({ form, updateForm }) {
   return (
     <div>
       <h2 className="font-display text-3xl text-brand-charcoal mb-1">Your Application</h2>
@@ -207,7 +198,7 @@ function ApplicationForm({ form, updateForm, resumeFile, setResumeFile }) {
           <div className="flex gap-4 mt-2">
             {['Yes', 'No'].map(v => (
               <label key={v} className="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="pacific" value={v} checked={form.can_work_pacific === v} onChange={() => updateForm('can_work_pacific', v)} className="accent-brand-forest" />
+                <input type="radio" name="schedule" value={v} checked={form.can_work_pacific === v} onChange={() => updateForm('can_work_pacific', v)} className="accent-brand-forest" />
                 <span className="text-sm">{v}</span>
               </label>
             ))}
@@ -242,28 +233,6 @@ function ApplicationForm({ form, updateForm, resumeFile, setResumeFile }) {
           <textarea className="input-field min-h-[100px] resize-y" value={form.why_excited} onChange={e => updateForm('why_excited', e.target.value)} placeholder="What draws you to this specific role..." />
         </div>
 
-        <div className="section-divider" />
-
-        <div>
-          <label className="form-label">Resume Upload *</label>
-          <label className="block cursor-pointer">
-            <div className={`border-2 border-dashed p-6 text-center transition-colors ${resumeFile ? 'border-brand-sage bg-brand-sage-light' : 'border-brand-border hover:border-brand-sage'}`}>
-              {resumeFile ? (
-                <div>
-                  <p className="text-sm font-medium text-brand-forest">{resumeFile.name}</p>
-                  <p className="text-xs text-gray-400 mt-1">Click to change file</p>
-                </div>
-              ) : (
-                <div>
-                  <p className="text-sm text-gray-500">Click to upload your resume</p>
-                  <p className="text-xs text-gray-400 mt-1">PDF or Word document, max 5MB</p>
-                </div>
-              )}
-            </div>
-            <input type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={e => setResumeFile(e.target.files[0] || null)} />
-          </label>
-        </div>
-
         <div>
           <label className="form-label">LinkedIn or Portfolio URL (optional)</label>
           <input className="input-field" value={form.linkedin_url} onChange={e => updateForm('linkedin_url', e.target.value)} placeholder="https://linkedin.com/in/..." />
@@ -281,7 +250,6 @@ function TrialTaskStep({ taskAnswers, setTaskAnswers }) {
       <p className="text-sm text-gray-500 mb-2">This should take approximately 5-10 minutes. Read the scenario carefully before answering.</p>
       <p className="text-xs text-brand-sage font-medium uppercase tracking-wide mb-8">No optical experience required — we want to see how you think and communicate.</p>
 
-      {/* Scenario */}
       <div className="bg-brand-cream p-6 mb-8 text-sm leading-relaxed text-brand-charcoal">
         <p className="font-medium mb-3 text-xs uppercase tracking-widest text-brand-sage">Scenario</p>
         <p className="mb-4">{scenario}</p>
@@ -293,42 +261,22 @@ function TrialTaskStep({ taskAnswers, setTaskAnswers }) {
       </div>
 
       <div className="space-y-8">
-        {/* Q1 */}
         <div>
           <p className="text-xs uppercase tracking-widest text-brand-sage font-medium mb-2">Question 1 of 3</p>
           <p className="text-sm font-medium text-brand-charcoal mb-1 leading-relaxed">{tq[0].prompt}</p>
           <p className="text-xs text-gray-400 mb-3">Tip: show each step of your math clearly.</p>
-          <textarea
-            className="input-field min-h-[120px] resize-y text-sm font-mono"
-            value={taskAnswers.q1}
-            onChange={e => setTaskAnswers(p => ({ ...p, q1: e.target.value }))}
-            placeholder="Frame: $289.00 - $150.00 = ..."
-          />
+          <textarea className="input-field min-h-[120px] resize-y text-sm font-mono" value={taskAnswers.q1} onChange={e => setTaskAnswers(p => ({ ...p, q1: e.target.value }))} placeholder="Frame: $289.00 - $150.00 = ..." />
         </div>
-
-        {/* Q2 */}
         <div>
           <p className="text-xs uppercase tracking-widest text-brand-sage font-medium mb-2">Question 2 of 3</p>
           <p className="text-sm font-medium text-brand-charcoal mb-1 leading-relaxed">{tq[1].prompt}</p>
           <p className="text-xs text-gray-400 mb-3">Tip: calculate the discount first, then the new total.</p>
-          <textarea
-            className="input-field min-h-[120px] resize-y text-sm font-mono"
-            value={taskAnswers.q2}
-            onChange={e => setTaskAnswers(p => ({ ...p, q2: e.target.value }))}
-            placeholder="AR coating discount: $85.00 x 20% = ..."
-          />
+          <textarea className="input-field min-h-[120px] resize-y text-sm font-mono" value={taskAnswers.q2} onChange={e => setTaskAnswers(p => ({ ...p, q2: e.target.value }))} placeholder="AR coating discount: $85.00 x 20% = ..." />
         </div>
-
-        {/* Q3 */}
         <div>
           <p className="text-xs uppercase tracking-widest text-brand-sage font-medium mb-2">Question 3 of 3</p>
           <p className="text-sm font-medium text-brand-charcoal mb-3 leading-relaxed">{tq[2].prompt}</p>
-          <textarea
-            className="input-field min-h-[140px] resize-y text-sm"
-            value={taskAnswers.q3}
-            onChange={e => setTaskAnswers(p => ({ ...p, q3: e.target.value }))}
-            placeholder="Write out what you would say to Sandra..."
-          />
+          <textarea className="input-field min-h-[140px] resize-y text-sm" value={taskAnswers.q3} onChange={e => setTaskAnswers(p => ({ ...p, q3: e.target.value }))} placeholder="Write out what you would say to Sandra..." />
         </div>
       </div>
     </div>
@@ -367,7 +315,7 @@ function AssessmentStep({ questions, answers, setAnswers }) {
   )
 }
 
-function ReviewStep({ form, resumeFile }) {
+function ReviewStep({ form }) {
   return (
     <div>
       <h2 className="font-display text-3xl text-brand-charcoal mb-2">Review & Submit</h2>
@@ -376,18 +324,14 @@ function ReviewStep({ form, resumeFile }) {
         <div className="bg-brand-cream p-5 space-y-2">
           <p className="font-medium text-brand-charcoal">{form.full_name}</p>
           <p className="text-gray-500">{form.email}</p>
+          {form.phone && <p className="text-gray-500">{form.phone}</p>}
           <p className="text-gray-500">{form.city_timezone}</p>
           <p className="text-gray-500">Available from: {form.availability_date}</p>
-        </div>
-        <div className="border border-brand-border p-4 flex items-center gap-2 text-gray-500">
-          <span>📄</span>
-          <span className="text-sm">{resumeFile?.name || 'Resume uploaded'}</span>
         </div>
         <div className="border border-brand-sage-mid p-4 bg-brand-sage-light">
           <p className="text-xs font-medium text-brand-forest uppercase tracking-wide mb-2">Included in your application</p>
           <ul className="text-xs text-brand-forest space-y-0.5">
             <li>✓ Application form completed</li>
-            <li>✓ Resume uploaded</li>
             <li>✓ Trial task responses</li>
             <li>✓ Workplace Personality Assessment</li>
           </ul>

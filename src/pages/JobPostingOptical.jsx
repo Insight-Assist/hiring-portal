@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { getJobStatus } from '../lib/jobStatus'
 
 const responsibilities = [
   "Help patients select frames for fit, style, and prescription needs",
@@ -28,6 +30,16 @@ const benefits = [
 ]
 
 export default function JobPostingOptical() {
+  const [isOpen, setIsOpen] = useState(true)
+  const [checking, setChecking] = useState(true)
+
+  useEffect(() => {
+    getJobStatus('optical-technician').then(open => {
+      setIsOpen(open)
+      setChecking(false)
+    })
+  }, [])
+
   return (
     <div className="min-h-screen bg-white">
       <header className="border-b border-brand-border px-6 py-4">
@@ -35,7 +47,10 @@ export default function JobPostingOptical() {
           <span className="font-body text-sm font-black tracking-widest uppercase">
             <span className="text-brand-charcoal">INSIGHT</span><span className="text-brand-sage font-normal">ASSIST</span>
           </span>
-          <Link to="/apply/optical" className="btn-primary">Apply Now</Link>
+          {!checking && (isOpen
+            ? <Link to="/apply/optical" className="btn-primary">Apply Now</Link>
+            : <span className="px-4 py-2 text-sm border border-brand-border text-gray-400 bg-brand-cream">Position Filled</span>
+          )}
         </div>
       </header>
 
@@ -160,9 +175,10 @@ export default function JobPostingOptical() {
             <p className="font-display text-xl text-brand-charcoal">Ready to apply?</p>
             <p className="text-sm text-gray-500 mt-1">The full application takes approximately 20-30 minutes.</p>
           </div>
-          <Link to="/apply/optical" className="btn-primary whitespace-nowrap">
-            Start Application
-          </Link>
+          {isOpen
+            ? <Link to="/apply/optical" className="btn-primary whitespace-nowrap">Start Application</Link>
+            : <span className="px-6 py-3 text-sm border border-brand-border text-gray-400 bg-brand-cream">Position Filled</span>
+          }
         </div>
 
         <p className="text-xs text-gray-400 mt-8 text-center">
