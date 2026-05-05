@@ -76,6 +76,26 @@ export default function AdminDashboard() {
     else { setSortField(field); setSortDir('asc') }
   }
 
+  const toggleJobStatus = async (role) => {
+    setTogglingRole(role)
+    const newStatus = !jobStatuses[role]
+
+    const { data, error } = await supabase
+      .from('job_status')
+      .update({ is_open: newStatus, updated_at: new Date().toISOString() })
+      .eq('role', role)
+      .select()
+
+    console.log('job_status UPDATE:', data, error)
+
+    if (error) {
+      alert('Could not update: ' + error.message + ' (code: ' + error.code + ')')
+    } else {
+      setJobStatuses(prev => ({ ...prev, [role]: newStatus }))
+    }
+    setTogglingRole(null)
+  }
+
   const formatDate = (iso) => {
     if (!iso) return '—'
     return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
