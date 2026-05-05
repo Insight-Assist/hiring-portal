@@ -30,6 +30,7 @@ export default function AdminDashboard() {
   const [roleFilter, setRoleFilter] = useState('All')
   const [jobStatuses, setJobStatuses] = useState({ scribe: true, 'optical-technician': true })
   const [togglingRole, setTogglingRole] = useState(null)
+  const [openRoles, setOpenRoles] = useState(null) // null = loading, array = resolved
 
   useEffect(() => {
     fetchApplicants()
@@ -38,6 +39,10 @@ export default function AdminDashboard() {
       getJobStatus('optical-technician'),
     ]).then(([scribe, optical]) => {
       setJobStatuses({ scribe, 'optical-technician': optical })
+      const open = []
+      if (scribe) open.push('scribe')
+      if (optical) open.push('optical-technician')
+      setOpenRoles(open)
     })
   }, [])
 
@@ -54,7 +59,16 @@ export default function AdminDashboard() {
 
   const filtered = applicants
     .filter(a => statusFilter === 'All' || a.status === statusFilter)
-    .filter(a => roleFilter === 'All' || (roleFilter === 'scribe' ? !a.role || a.role === 'scribe' : a.role === roleFilter))
+    .filter(a => {
+      if (roleFilter === 'all-including-closed') return true
+      if (roleFilter !== 'All') {
+        return roleFilter === 'scribe' ? (!a.role || a.role === 'scribe') : a.role === roleFilter
+      }
+      // Default 'All': only show applicants from open positions
+      if (openRoles === null) return true
+      const role = a.role || 'scribe'
+      return openRoles.includes(role)
+    })
     .filter(a => {
       if (!search) return true
       const s = search.toLowerCase()
@@ -181,7 +195,7 @@ export default function AdminDashboard() {
             onChange={e => setSearch(e.target.value)}
           />
           <div className="flex gap-1 flex-wrap">
-            {['All', 'scribe', 'optical-technician'].map(r => (
+            {['All', 'scribe', 'optical-technician', 'all-including-closed'].map(r => (
               <button
                 key={r}
                 onClick={() => setRoleFilter(r)}
@@ -191,7 +205,7 @@ export default function AdminDashboard() {
                     : 'bg-white text-gray-500 border-brand-border hover:border-brand-sage'
                 }`}
               >
-                {r === 'All' ? 'All Roles' : r === 'scribe' ? 'Medical Scribe' : 'Optical Tech'}
+                {r === 'All' ? 'Open Roles' : r === 'scribe' ? 'Medical Scribe' : r === 'optical-technician' ? 'Optical Tech' : 'All (incl. closed)'}
               </button>
             ))}
           </div>

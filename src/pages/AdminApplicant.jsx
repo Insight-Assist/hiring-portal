@@ -86,6 +86,84 @@ const DISCUSSION_POINTS = [
   },
 ]
 
+const DISCUSSION_POINTS_OPTICAL = [
+  {
+    id: 'dp_intro',
+    number: '1',
+    label: 'Intro & Practice Overview',
+    bullets: [
+      'Newport Vision Source is a busy independent optometry practice in rural Newport, WA',
+      'Float role covers both optical dispensing and paraoptometric patient care',
+      'Team-oriented, patient-first environment where variety is part of every day',
+    ],
+  },
+  {
+    id: 'dp_schedule',
+    number: '2',
+    label: 'Schedule Alignment',
+    bullets: [
+      'Tue–Thu: 8:00 AM – 5:00 PM',
+      'Occasional Monday coverage when staff are out',
+      '1–2 Fridays per month: 8:00 AM – 2:00 PM',
+      'Confirm candidate is comfortable with the variable schedule',
+    ],
+  },
+  {
+    id: 'dp_optical',
+    number: '3',
+    label: 'Optical Department Expectations',
+    bullets: [
+      'Help patients select frames for fit, style, and prescription needs',
+      'Learn to interpret VSP and other vision plan benefits',
+      'Recommend lens options based on each patient\'s lifestyle',
+      'First focus: learn the optical side thoroughly before adding clinical duties',
+    ],
+  },
+  {
+    id: 'dp_para',
+    number: '4',
+    label: 'Paraoptometric Duties',
+    bullets: [
+      'Prescreening patients and running special tests for the doctor',
+      'Collecting patient history and updating records',
+      'Assisting with contact lens fittings',
+      'Supporting the doctor in whatever the day requires',
+    ],
+  },
+  {
+    id: 'dp_cpo',
+    number: '5',
+    label: 'CPO Certification Path',
+    bullets: [
+      'Opportunity to earn Certified Paraoptometric (CPO) credential',
+      '+$2.00/hr raise after 6 months + successful CPO exam completion',
+      'Further advancement available within the role',
+      'Ask candidate: Is earning your CPO something you are interested in?',
+    ],
+  },
+  {
+    id: 'dp_comp',
+    number: '6',
+    label: 'Compensation Alignment',
+    bullets: [
+      'Starting wage: $19.00/hour',
+      'Confirm the candidate expectations align',
+      'Emphasize growth path to $21.00+/hr with CPO',
+    ],
+  },
+  {
+    id: 'dp_fit',
+    number: '7',
+    label: 'Culture & Fit',
+    bullets: [
+      'Looking for someone fun, outgoing, and comfortable with variety',
+      'Must enjoy working directly with patients — people skills matter',
+      'Fit matters both ways — encourage candidate to ask questions',
+    ],
+  },
+]
+
+
 const STAR_QUESTIONS = [
   {
     id: 'star_learning',
@@ -358,8 +436,17 @@ export default function AdminApplicant() {
             {/* Short answers */}
             <Section title="Short Answer Responses">
               <div className="space-y-5">
-                <ResponseBlock label="Why are you interested in this role?" value={applicant.why_interested} />
-                <ResponseBlock label="What makes you good at supporting a provider and reducing mental load?" value={applicant.why_good_fit} />
+                {applicant.role === 'optical-technician' ? (
+                  <>
+                    <ResponseBlock label="What aspects of a work environment are important to you, and how does Newport Vision Source align with your values?" value={applicant.why_interested} />
+                    <ResponseBlock label="What excites you most about the Optical / Paraoptometric Technician float position?" value={applicant.why_good_fit} />
+                  </>
+                ) : (
+                  <>
+                    <ResponseBlock label="Why are you interested in this role?" value={applicant.why_interested} />
+                    <ResponseBlock label="What makes you good at supporting a provider and reducing mental load?" value={applicant.why_good_fit} />
+                  </>
+                )}
               </div>
             </Section>
 
@@ -388,8 +475,12 @@ export default function AdminApplicant() {
 
                 {/* Header */}
                 <div className="bg-brand-charcoal px-6 py-4">
-                  <p className="text-white font-display text-lg">Medical Scribe Interview Guide</p>
-                  <p className="text-brand-sage-mid text-xs mt-0.5">Remote Medical Scribe · Dr. Beth's Team · Rural Washington State, USA</p>
+                  <p className="text-white font-display text-lg">
+                    {applicant.role === 'optical-technician' ? 'Optical / Paraoptometric Technician Interview Guide' : 'Medical Scribe Interview Guide'}
+                  </p>
+                  <p className="text-brand-sage-mid text-xs mt-0.5">
+                    {applicant.role === 'optical-technician' ? 'Newport Vision Source · Newport, WA' : "Remote Medical Scribe · Dr. Beth's Team · Rural Washington State, USA"}
+                  </p>
                 </div>
 
                 <div className="divide-y divide-brand-border">
@@ -411,7 +502,7 @@ export default function AdminApplicant() {
                     <p className="text-xs text-brand-sage mt-0.5">Cover each topic with the candidate. Notes only — no scoring.</p>
                   </div>
 
-                  {DISCUSSION_POINTS.map((dp) => (
+                  {(applicant.role === 'optical-technician' ? DISCUSSION_POINTS_OPTICAL : DISCUSSION_POINTS).map((dp) => (
                     <div key={dp.id} className="px-6 py-5 bg-white">
                       <div className="flex gap-3 mb-3">
                         <span className="text-xs font-medium text-brand-sage flex-shrink-0 mt-0.5">{dp.number}.</span>
