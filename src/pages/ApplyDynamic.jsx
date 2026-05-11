@@ -78,13 +78,18 @@ export default function ApplyDynamic() {
     setSubmitting(true)
     setError('')
     try {
+      // Store resume as base64 in DB — bypasses storage bucket permissions
       let resumePath = null
+      let resumeData = null
       if (resumeFile) {
-        const ext = resumeFile.name.split('.').pop()
-        const fileName = `${Date.now()}_${form.full_name.replace(/\s+/g, '_')}.${ext}`
-        const { data: uploadData, error: uploadError } = await supabase.storage.from('resumes').upload(fileName, resumeFile)
-        if (uploadError) throw new Error(`Resume upload failed: ${uploadError.message}`)
-        resumePath = uploadData.path
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(reader.result)
+          reader.onerror = reject
+          reader.readAsDataURL(resumeFile)
+        })
+        resumeData = base64
+        resumePath = resumeFile.name
       }
 
       const personalityResult = calculatePersonality(assessmentAnswers)
@@ -102,6 +107,7 @@ export default function ApplyDynamic() {
         why_good_fit: form.why_good_fit || null,
         linkedin_url: form.linkedin_url || null,
         resume_path: resumePath,
+        resume_data: resumeData,
         trial_task_responses: hasTask ? taskAnswers : null,
         assessment_answers: assessmentAnswers,
         personality_dominant: personalityResult.dominant || null,
