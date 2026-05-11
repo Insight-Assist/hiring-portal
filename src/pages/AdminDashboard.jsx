@@ -124,12 +124,10 @@ export default function AdminDashboard() {
             <span className="font-body text-sm font-black tracking-widest uppercase"><span className="text-white">INSIGHT</span><span className="text-brand-sage font-normal">ASSIST</span></span>
             <span className="text-brand-sage-mid text-sm">· Hiring Portal</span>
           </div>
-          <button
-            onClick={signOut}
-            className="text-sm text-gray-400 hover:text-white transition-colors"
-          >
-            Sign Out
-          </button>
+          <div className="flex items-center gap-4">
+            <Link to="/admin/jobs" className="text-sm text-gray-400 hover:text-white transition-colors">Job Manager</Link>
+            <button onClick={signOut} className="text-sm text-gray-400 hover:text-white transition-colors">Sign Out</button>
+          </div>
         </div>
       </header>
 

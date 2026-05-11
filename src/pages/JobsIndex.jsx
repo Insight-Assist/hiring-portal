@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { getJobStatus } from '../lib/jobStatus'
+import { supabase } from '../lib/supabase'
 
 const ALL_JOBS = [
   {
@@ -26,14 +27,15 @@ const ALL_JOBS = [
 export default function JobsIndex() {
   const [openJobs, setOpenJobs] = useState([])
   const [loading, setLoading] = useState(true)
+  const [dynamicJobs, setDynamicJobs] = useState([])
 
   useEffect(() => {
-    Promise.all(
-      ALL_JOBS.map(job =>
-        getJobStatus(job.role).then(isOpen => ({ ...job, isOpen }))
-      )
-    ).then(results => {
-      setOpenJobs(results.filter(j => j.isOpen))
+    Promise.all([
+      Promise.all(ALL_JOBS.map(job => getJobStatus(job.role).then(isOpen => ({ ...job, isOpen })))),
+      supabase.from('jobs').select('id, title, client, subtitle, job_type, compensation, is_open, slug, location, is_remote').eq('is_open', true).order('created_at', { ascending: false })
+    ]).then(([staticResults, { data: dynData }]) => {
+      setOpenJobs(staticResults.filter(j => j.isOpen))
+      setDynamicJobs(dynData || [])
       setLoading(false)
     })
   }, [])
@@ -61,7 +63,15 @@ export default function JobsIndex() {
           </div>
         ) : (
           <div className="space-y-4">
-            {openJobs.map((job) => (
+            {[...openJobs, ...(dynamicJobs.map(j => ({
+              to: `/jobs/${j.slug}`,
+              client: j.client,
+              title: j.title,
+              subtitle: j.location || (j.is_remote ? 'Remote' : ''),
+              type: j.job_type + (j.is_remote ? ' · Remote' : ' · In Person'),
+              comp: j.compensation,
+              isDynamic: true,
+            })))].map((job) => (
               <Link
                 key={job.to}
                 to={job.to}
