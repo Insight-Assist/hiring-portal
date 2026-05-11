@@ -171,18 +171,14 @@ export default function AdminJobManager() {
   }
 
   const callAI = async (systemPrompt, userPrompt) => {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('/api/ai-generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }],
-      })
+      body: JSON.stringify({ systemPrompt, userPrompt })
     })
     const data = await response.json()
-    return data.content?.[0]?.text || ''
+    if (data.error) throw new Error(data.error)
+    return data.text || ''
   }
 
   const generateDescription = async () => {
