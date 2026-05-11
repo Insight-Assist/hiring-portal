@@ -23,6 +23,7 @@ export default function ApplyDynamic() {
     full_name: '', email: '', phone: '', country: '', city_timezone: '',
     can_work_schedule: '', english_proficiency: '', why_interested: '', why_good_fit: '',
     availability_date: '', linkedin_url: '',
+    availability_date: '', linkedin_url: '',
   })
   const [resumeFile, setResumeFile] = useState(null)
   const [taskAnswers, setTaskAnswers] = useState({})
@@ -49,6 +50,9 @@ export default function ApplyDynamic() {
       const required = ['full_name', 'email', 'city_timezone', 'can_work_schedule', 'why_interested', 'why_good_fit']
       for (const f of required) {
         if (!form[f]) { setError('Please complete all required fields.'); return false }
+      }
+      if (job.resume_required && !resumeFile) {
+        setError('A resume is required for this application.'); return false
       }
     }
     if (hasTask && step === getTaskStep()) {
@@ -93,7 +97,7 @@ export default function ApplyDynamic() {
         country: form.country || null,
         city_timezone: form.city_timezone || null,
         can_work_pacific: form.can_work_schedule || null,
-        english_proficiency: form.english_proficiency || null,
+        english_proficiency: job.ask_english_proficiency ? (form.english_proficiency || null) : null,
         why_interested: form.why_interested || null,
         why_good_fit: form.why_good_fit || null,
         linkedin_url: form.linkedin_url || null,
@@ -163,10 +167,10 @@ export default function ApplyDynamic() {
       <main className="max-w-3xl mx-auto px-6 py-10">
         {error && <div className="mb-6 px-4 py-3 bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>}
 
-        {step === 0 && <DynamicAppForm job={job} form={form} updateForm={updateForm} resumeFile={resumeFile} setResumeFile={setResumeFile} />}
+        {step === 0 && <DynamicAppForm job={job} form={form} updateForm={updateForm} resumeFile={resumeFile} setResumeFile={setResumeFile} resumeRequired={job.resume_required || false} askEnglish={job.ask_english_proficiency || false} />}
         {hasTask && step === getTaskStep() && <DynamicTaskStep job={job} taskAnswers={taskAnswers} setTaskAnswers={setTaskAnswers} />}
         {step === getAssessmentStep() && <AssessmentStep questions={shuffledQuestions} answers={assessmentAnswers} setAnswers={setAssessmentAnswers} />}
-        {step === getReviewStep() && <ReviewStep job={job} form={form} resumeFile={resumeFile} hasTask={hasTask} />}
+        {step === getReviewStep() && <ReviewStep job={job} form={form} resumeFile={resumeFile} hasTask={hasTask} resumeRequired={job.resume_required || false} />}
 
         <div className="mt-10 flex justify-between items-center border-t border-brand-border pt-6">
           {step > 0
@@ -183,7 +187,7 @@ export default function ApplyDynamic() {
   )
 }
 
-function DynamicAppForm({ job, form, updateForm, resumeFile, setResumeFile }) {
+function DynamicAppForm({ job, form, updateForm, resumeFile, setResumeFile, resumeRequired, askEnglish }) {
   return (
     <div>
       <h2 className="font-display text-3xl text-brand-charcoal mb-1">Your Application</h2>
@@ -215,13 +219,25 @@ function DynamicAppForm({ job, form, updateForm, resumeFile, setResumeFile }) {
         <div className="section-divider" />
         <div><label className="form-label">Why are you interested in this role? *</label><textarea className="input-field min-h-[100px] resize-y" value={form.why_interested} onChange={e => updateForm('why_interested', e.target.value)} placeholder="Tell us what draws you to this opportunity..." /></div>
         <div><label className="form-label">What makes you a strong fit for this position? *</label><textarea className="input-field min-h-[100px] resize-y" value={form.why_good_fit} onChange={e => updateForm('why_good_fit', e.target.value)} placeholder="Share relevant skills, experience, or qualities..." /></div>
+        {askEnglish && (
+          <div>
+            <label className="form-label">English Proficiency (self-rating) *</label>
+            <select className="input-field" value={form.english_proficiency} onChange={e => updateForm('english_proficiency', e.target.value)}>
+              <option value="">Select...</option>
+              <option>Basic</option>
+              <option>Intermediate</option>
+              <option>Advanced</option>
+              <option>Fluent / Native</option>
+            </select>
+          </div>
+        )}
         <div className="section-divider" />
         <div>
-          <label className="form-label">Resume Upload (optional)</label>
+          <label className="form-label">Resume Upload {resumeRequired ? '*' : '(optional)'}</label>
           <label className="block cursor-pointer">
             <div className={`border-2 border-dashed p-6 text-center transition-colors ${resumeFile ? 'border-brand-sage bg-brand-sage-light' : 'border-brand-border hover:border-brand-sage'}`}>
               {resumeFile ? <div><p className="text-sm font-medium text-brand-forest">{resumeFile.name}</p><p className="text-xs text-gray-400 mt-1">Click to change</p></div>
-                : <div><p className="text-sm text-gray-500">Click to upload resume (optional)</p><p className="text-xs text-gray-400 mt-1">PDF or Word, max 5MB</p></div>}
+                : <div><p className="text-sm text-gray-500">{resumeRequired ? 'Click to upload your resume' : 'Click to upload resume (optional)'}</p><p className="text-xs text-gray-400 mt-1">PDF or Word, max 5MB</p></div>}
             </div>
             <input type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={e => setResumeFile(e.target.files[0] || null)} />
           </label>
@@ -298,7 +314,7 @@ function AssessmentStep({ questions, answers, setAnswers }) {
   )
 }
 
-function ReviewStep({ job, form, resumeFile, hasTask }) {
+function ReviewStep({ job, form, resumeFile, hasTask, resumeRequired }) {
   return (
     <div>
       <h2 className="font-display text-3xl text-brand-charcoal mb-2">Review & Submit</h2>
@@ -315,11 +331,17 @@ function ReviewStep({ job, form, resumeFile, hasTask }) {
             <span>📄</span><span className="text-sm">{resumeFile.name}</span>
           </div>
         )}
+        {resumeRequired && !resumeFile && (
+          <div className="border border-red-200 bg-red-50 p-3 text-xs text-red-600">
+            Resume is required — please go back and upload your resume.
+          </div>
+        )}
         <div className="border border-brand-sage-mid p-4 bg-brand-sage-light">
           <p className="text-xs font-medium text-brand-forest uppercase tracking-wide mb-2">Included in your application</p>
           <ul className="text-xs text-brand-forest space-y-0.5">
             <li>✓ Application form completed</li>
             {resumeFile && <li>✓ Resume uploaded</li>}
+            {resumeRequired && !resumeFile && <li className="text-red-400">✗ Resume missing (required)</li>}
             {hasTask && <li>✓ Trial task responses</li>}
             <li>✓ Workplace Personality Assessment</li>
           </ul>

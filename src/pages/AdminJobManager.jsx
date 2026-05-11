@@ -18,6 +18,8 @@ const SCRIBE_TEMPLATE = {
     { label: 'Sick Pay', detail: '40 hours of paid sick leave per year' },
     { label: 'Utility Stipend', detail: '$70 USD per month toward internet and utilities' },
   ],
+  ask_english_proficiency: true,
+  resume_required: true,
   responsibilities: [
     'Real-time charting and clinical documentation',
     'Insurance verification for medical and vision plans',
@@ -51,6 +53,8 @@ const OPTICAL_TEMPLATE = {
     { label: 'Advancement', detail: '+$2.00/hr after 6 months + CPO exam' },
     { label: 'Training', detail: 'Full on-the-job training provided' },
   ],
+  ask_english_proficiency: false,
+  resume_required: false,
   responsibilities: [
     'Help patients select frames for fit, style, and prescription needs',
     'Learn to interpret vision plan and insurance benefits',
@@ -85,6 +89,8 @@ const BLANK_TEMPLATE = {
   trial_task_questions: [],
   interview_discussion_points: [],
   interview_star_questions: [],
+  ask_english_proficiency: false,
+  resume_required: false,
 }
 
 export default function AdminJobManager() {
@@ -406,6 +412,14 @@ Additional context: ${aiPrompt}`
               <div className="flex items-center gap-2">
                 <input type="checkbox" id="is_open" checked={job.is_open !== false} onChange={e => update('is_open', e.target.checked)} className="accent-brand-forest" />
                 <label htmlFor="is_open" className="text-sm text-brand-charcoal">Currently accepting applications</label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="ask_english" checked={job.ask_english_proficiency || false} onChange={e => update('ask_english_proficiency', e.target.checked)} className="accent-brand-forest" />
+                <label htmlFor="ask_english" className="text-sm text-brand-charcoal">Ask English proficiency rating</label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="resume_req" checked={job.resume_required || false} onChange={e => update('resume_required', e.target.checked)} className="accent-brand-forest" />
+                <label htmlFor="resume_req" className="text-sm text-brand-charcoal">Resume required (unchecked = optional)</label>
               </div>
             </div>
 
