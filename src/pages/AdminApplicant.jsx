@@ -212,6 +212,7 @@ export default function AdminApplicant() {
   const [taskScores, setTaskScores] = useState({})
   const [totalScore, setTotalScore] = useState(null)
   const [interview, setInterview] = useState(defaultInterview())
+  const [jobData, setJobData] = useState(null) // for dynamic jobs
 
   useEffect(() => { fetchApplicant() }, [id])
 
@@ -227,9 +228,22 @@ export default function AdminApplicant() {
       setNotes(data.internal_notes || '')
       setStatus(data.status || 'New')
       setRecommendation(data.recommendation || '')
-      if (data.resume_path) {
-        const { data: urlData } = supabase.storage.from('resumes').getPublicUrl(data.resume_path)
-        setResumeUrl(urlData?.publicUrl)
+      // Handle resume: base64 data takes priority, then storage path
+      if (data.resume_data) {
+        // New format: base64 stored directly in DB
+        setResumeUrl(data.resume_data)
+      } else if (data.resume_path) {
+        // Old format: storage path — use signed URL (valid 1 hour, bypasses public policy issues)
+        const { data: signedData, error: signedError } = await supabase.storage
+          .from('resumes')
+          .createSignedUrl(data.resume_path, 3600)
+        if (!signedError && signedData?.signedUrl) {
+          setResumeUrl(signedData.signedUrl)
+        } else {
+          // Last resort: try public URL
+          const { data: urlData } = supabase.storage.from('resumes').getPublicUrl(data.resume_path)
+          setResumeUrl(urlData?.publicUrl)
+        }
       }
       if (data.task_scores) {
         setTaskScores(data.task_scores)
@@ -237,6 +251,13 @@ export default function AdminApplicant() {
       }
       if (data.interview_guide) {
         setInterview({ ...defaultInterview(), ...data.interview_guide })
+      }
+
+      // For dynamic jobs, fetch the job record to get questions/rubric/interview guide
+      if (data.role && data.role.startsWith('dynamic-')) {
+        const slug = data.role.replace('dynamic-', '')
+        const { data: jd } = await supabase.from('jobs').select('*').eq('slug', slug).single()
+        if (jd) setJobData(jd)
       }
     }
     setLoading(false)
@@ -286,6 +307,10 @@ export default function AdminApplicant() {
   const pDominant = personalityTypes[applicant.personality_dominant]
   const pSecondary = personalityTypes[applicant.personality_secondary]
   const taskResponses = applicant.trial_task_responses || {}
+
+  const isScribe = !applicant.role || applicant.role === 'scribe'
+  const isOptical = applicant.role === 'optical-technician'
+  const isDynamic = applicant.role?.startsWith('dynamic-')
 
   return (
     <div className="min-h-screen bg-white">
@@ -420,10 +445,26 @@ export default function AdminApplicant() {
                   <option>No</option>
                 </select>
               </div>
-              {resumeUrl && (
+              {(resumeUrl || applicant.resume_path) && (
                 <div>
                   <p className="text-xs uppercase tracking-widest text-brand-sage font-medium mb-2">Resume</p>
-                  <a href={resumeUrl} target="_blank" rel="noreferrer" className="text-sm text-brand-sage hover:text-brand-forest underline">Open Resume ↗</a>
+                  {applicant.resume_data ? (
+                    // Base64 resume — use download link
+                    <a
+                      href={applicant.resume_data}
+                      download={applicant.resume_path || 'resume.pdf'}
+                      className="text-sm text-brand-sage hover:text-brand-forest underline"
+                    >
+                      Download Resume ↓
+                    </a>
+                  ) : resumeUrl ? (
+                    <a href={resumeUrl} target="_blank" rel="noreferrer" className="text-sm text-brand-sage hover:text-brand-forest underline">Open Resume ↗</a>
+                  ) : (
+                    <p className="text-xs text-gray-400 italic">Resume file unavailable</p>
+                  )}
+                  {applicant.resume_path && (
+                    <p className="text-xs text-gray-400 mt-1">{applicant.resume_path}</p>
+                  )}
                 </div>
               )}
             </div>
@@ -436,10 +477,15 @@ export default function AdminApplicant() {
             {/* Short answers */}
             <Section title="Short Answer Responses">
               <div className="space-y-5">
-                {applicant.role === 'optical-technician' ? (
+                {isOptical ? (
                   <>
                     <ResponseBlock label="What aspects of a work environment are important to you, and how does Newport Vision Source align with your values?" value={applicant.why_interested} />
                     <ResponseBlock label="What excites you most about the Optical / Paraoptometric Technician float position?" value={applicant.why_good_fit} />
+                  </>
+                ) : isDynamic ? (
+                  <>
+                    <ResponseBlock label="Why are you interested in this role?" value={applicant.why_interested} />
+                    <ResponseBlock label="What makes you a strong fit for this position?" value={applicant.why_good_fit} />
                   </>
                 ) : (
                   <>
@@ -452,8 +498,16 @@ export default function AdminApplicant() {
 
             {/* Trial Task — role-aware */}
             <Section title="Trial Task Responses">
-              {applicant.role === 'optical-technician' ? (
+              {isOptical ? (
                 <OpticalTrialTaskSection
+                  taskResponses={taskResponses}
+                  taskScores={taskScores}
+                  totalScore={totalScore}
+                  updateScore={updateScore}
+                />
+              ) : isDynamic ? (
+                <DynamicTrialTaskSection
+                  job={jobData}
                   taskResponses={taskResponses}
                   taskScores={taskScores}
                   totalScore={totalScore}
@@ -471,15 +525,29 @@ export default function AdminApplicant() {
 
             {/* ── INTERVIEW GUIDE ── */}
             <Section title="Interview Guide & Scorecard">
+              {isDynamic && !jobData && (
+                <div className="bg-brand-cream p-6 text-sm text-gray-500 italic">Loading interview guide...</div>
+              )}
+              {isDynamic && jobData && (jobData.interview_discussion_points || []).length === 0 && (
+                <div className="bg-brand-cream border border-brand-border p-6">
+                  <p className="text-sm text-gray-500">No interview guide has been generated for this job yet.</p>
+                  <p className="text-xs text-gray-400 mt-1">Go to Job Manager → {jobData.title} → Interview tab to generate one.</p>
+                </div>
+              )}
+              {(!isDynamic || (jobData && (jobData.interview_discussion_points || []).length > 0)) && (
               <div className="border border-brand-border overflow-hidden">
 
                 {/* Header */}
                 <div className="bg-brand-charcoal px-6 py-4">
                   <p className="text-white font-display text-lg">
-                    {applicant.role === 'optical-technician' ? 'Optical / Paraoptometric Technician Interview Guide' : 'Medical Scribe Interview Guide'}
+                    {isOptical ? 'Optical / Paraoptometric Technician Interview Guide'
+                      : isDynamic ? (jobData?.title || 'Interview Guide')
+                      : 'Medical Scribe Interview Guide'}
                   </p>
                   <p className="text-brand-sage-mid text-xs mt-0.5">
-                    {applicant.role === 'optical-technician' ? 'Newport Vision Source · Newport, WA' : "Remote Medical Scribe · Dr. Beth's Team · Rural Washington State, USA"}
+                    {isOptical ? 'Newport Vision Source · Newport, WA'
+                      : isDynamic ? (jobData?.client || '') + (jobData?.location ? ' · ' + jobData.location : '')
+                      : "Remote Medical Scribe · Dr. Beth's Team · Rural Washington State, USA"}
                   </p>
                 </div>
 
@@ -502,7 +570,10 @@ export default function AdminApplicant() {
                     <p className="text-xs text-brand-sage mt-0.5">Cover each topic with the candidate. Notes only — no scoring.</p>
                   </div>
 
-                  {(applicant.role === 'optical-technician' ? DISCUSSION_POINTS_OPTICAL : DISCUSSION_POINTS).map((dp) => (
+                  {(isOptical ? DISCUSSION_POINTS_OPTICAL
+                    : isDynamic && (jobData?.interview_discussion_points || []).length > 0
+                    ? jobData.interview_discussion_points
+                    : DISCUSSION_POINTS).map((dp) => (
                     <div key={dp.id} className="px-6 py-5 bg-white">
                       <div className="flex gap-3 mb-3">
                         <span className="text-xs font-medium text-brand-sage flex-shrink-0 mt-0.5">{dp.number}.</span>
@@ -550,7 +621,10 @@ export default function AdminApplicant() {
                     </details>
                   </div>
 
-                  {STAR_QUESTIONS.map((q) => (
+                  {(isOptical ? STAR_QUESTIONS_OPTICAL
+                    : isDynamic && (jobData?.interview_star_questions || []).length > 0
+                    ? jobData.interview_star_questions
+                    : STAR_QUESTIONS).map((q) => (
                     <div key={q.id} className="px-6 py-5 bg-white">
                       <div className="flex gap-3 mb-3">
                         <span className="text-xs font-medium text-brand-sage flex-shrink-0 mt-0.5">Q{q.number}.</span>
@@ -678,6 +752,7 @@ export default function AdminApplicant() {
 
                 </div>
               </div>
+              )}
             </Section>
 
             {/* Internal Notes */}
@@ -702,6 +777,107 @@ export default function AdminApplicant() {
     </div>
   )
 }
+
+// ── Dynamic trial task (AI generated, any role) ──
+function DynamicTrialTaskSection({ job, taskResponses, taskScores, totalScore, updateScore }) {
+  if (!job) {
+    return (
+      <div className="bg-brand-cream p-6 text-sm text-gray-500 italic">
+        Loading job details...
+      </div>
+    )
+  }
+
+  const questions = job.trial_task_questions || []
+
+  if (questions.length === 0) {
+    return (
+      <div className="bg-brand-cream p-6 text-sm text-gray-500 italic">
+        No trial task was included in this application.
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-sm text-gray-500">Score each response. Total is out of 100 points.</p>
+        {totalScore !== null && (
+          <div className="text-right">
+            <span className="text-2xl font-display text-brand-charcoal">{totalScore}</span>
+            <span className="text-sm text-gray-400">/100</span>
+          </div>
+        )}
+      </div>
+
+      {/* Scenario reference */}
+      {(job.trial_task_scenario || job.trial_task_encounter) && (
+        <div className="bg-brand-cream border border-brand-border p-4 mb-6 text-xs">
+          <p className="text-xs uppercase tracking-widest text-brand-sage font-medium mb-2">Scenario Reference</p>
+          {job.trial_task_scenario && <p className="text-brand-charcoal mb-2 leading-relaxed">{job.trial_task_scenario}</p>}
+          {job.trial_task_encounter && (
+            <div className="border-l-2 border-brand-sage-mid pl-3 font-mono text-brand-forest leading-relaxed whitespace-pre-wrap">
+              {job.trial_task_encounter}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="space-y-8">
+        {questions.map((q, qi) => {
+          const qKey = `q${qi + 1}`
+          const response = taskResponses[qKey] || ''
+          const maxPts = q.rubric?.maxPoints || Math.round(100 / questions.length)
+
+          return (
+            <div key={q.id || qi} className="border border-brand-border p-5">
+              <div className="flex items-start justify-between gap-4 mb-3">
+                <p className="text-xs uppercase tracking-widest text-brand-sage font-medium">Question {qi + 1}</p>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <label className="text-xs text-gray-400">Score:</label>
+                  <input
+                    type="number" min="0" max={maxPts}
+                    className="w-16 border border-brand-border px-2 py-1 text-sm text-center focus:outline-none focus:border-brand-sage"
+                    value={taskScores[qKey] ?? ''}
+                    onChange={e => updateScore(qKey, e.target.value)}
+                  />
+                  <span className="text-xs text-gray-400">/ {maxPts}</span>
+                </div>
+              </div>
+
+              <p className="text-sm font-medium text-brand-charcoal mb-3 leading-relaxed">{q.prompt}</p>
+
+              <div className={`bg-brand-cream p-4 mb-4 text-sm text-brand-charcoal leading-relaxed whitespace-pre-wrap min-h-[60px] ${q.type === 'calculation' ? 'font-mono' : ''}`}>
+                {response || <span className="text-gray-400 italic font-sans">No response</span>}
+              </div>
+
+              {q.rubric?.keyItems?.length > 0 && (
+                <details className="text-xs">
+                  <summary className="text-brand-sage cursor-pointer hover:text-brand-forest font-medium">View Scoring Rubric</summary>
+                  <div className="mt-3 space-y-1.5 pl-2">
+                    {q.rubric.keyItems.map((item, i) => (
+                      <div key={i} className="flex justify-between gap-2 text-gray-600">
+                        <span>• {item.item}</span>
+                        <span className="flex-shrink-0 font-medium text-brand-charcoal">+{item.points}</span>
+                      </div>
+                    ))}
+                    {q.rubric.bonusItems?.map((item, i) => (
+                      <div key={i} className="flex justify-between gap-2 text-brand-sage">
+                        <span>★ Bonus: {item.item}</span>
+                        <span className="flex-shrink-0 font-medium">+{item.points}</span>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 
 // ── Scribe trial task (4 questions with priority drag) ──
 function ScribeTrialTaskSection({ taskResponses, taskScores, totalScore, updateScore }) {
