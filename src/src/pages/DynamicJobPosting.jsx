@@ -11,8 +11,11 @@ export default function DynamicJobPosting() {
   useEffect(() => {
     supabase.from('jobs').select('*').eq('slug', slug).single()
       .then(({ data, error }) => {
-        if (error || !data) setNotFound(true)
-        else setJob(data)
+        if (error || !data) {
+          setNotFound(true)
+        } else {
+          setJob(data)
+        }
         setLoading(false)
       })
   }, [slug])

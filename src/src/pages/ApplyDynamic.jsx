@@ -31,7 +31,10 @@ export default function ApplyDynamic() {
 
   useEffect(() => {
     supabase.from('jobs').select('*').eq('slug', slug).single()
-      .then(({ data }) => { if (data) setJob(data); setLoadingJob(false) })
+      .then(({ data }) => {
+        if (data) setJob(data)
+        setLoadingJob(false)
+      })
   }, [slug])
 
   const hasTask = (job?.trial_task_questions || []).length > 0
