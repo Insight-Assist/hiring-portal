@@ -56,7 +56,7 @@ export default function JobsIndex() {
 
         {loading ? (
           <p className="text-sm text-gray-400">Loading positions...</p>
-        ) : openJobs.length === 0 ? (
+        ) : openJobs.length === 0 && dynamicJobs.length === 0 ? (
           <div className="border border-brand-border p-8 text-center">
             <p className="font-display text-xl text-brand-charcoal mb-2">No Open Positions</p>
             <p className="text-sm text-gray-500">We don't have any openings right now. Please check back soon.</p>

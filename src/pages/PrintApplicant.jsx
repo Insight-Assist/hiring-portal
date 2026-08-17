@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { personalityTypes } from '../data/assessment'
 import { trialTask } from '../data/trialTask'
+import { trialTaskOptical } from '../data/trialTaskOptical'
 
 const DISCUSSION_POINTS = [
   { id: 'dp_intro', number: '1', label: 'Intro Understanding', bullets: ['Rural Washington State practice on the West Coast of the USA', 'Real-time, high-engagement scribe role — not passive', 'On Google Meet with the doctor all day'] },
@@ -18,6 +19,22 @@ const STAR_QUESTIONS = [
   { id: 'star_learning', number: '1', prompt: '"Tell me about a time you had to learn something new quickly to do your job well."' },
   { id: 'star_multitask', number: '2', prompt: '"Tell me about a time when you had to manage multiple responsibilities at once — such as responding to team messages, tracking tasks, and staying focused on a primary responsibility. How did you stay organized and ensure nothing was missed?"' },
 ]
+
+const DISCUSSION_POINTS_OPTICAL = [
+  { id: 'dp_intro', number: '1', label: 'Intro & Practice Overview', bullets: ['Newport Vision Source is a busy independent optometry practice in rural Newport, WA', 'Float role covers both optical dispensing and paraoptometric patient care', 'Team-oriented, patient-first environment where variety is part of every day'] },
+  { id: 'dp_schedule', number: '2', label: 'Schedule Alignment', bullets: ['Tue-Thu: 8:00 AM - 5:00 PM', 'Occasional Monday coverage when staff are out', '1-2 Fridays per month: 8:00 AM - 2:00 PM', 'Confirm candidate is comfortable with the variable schedule'] },
+  { id: 'dp_optical', number: '3', label: 'Optical Department Expectations', bullets: ['Help patients select frames for fit, style, and prescription needs', 'Learn to interpret VSP and other vision plan benefits', 'Recommend lens options based on each patient lifestyle', 'First focus: learn the optical side thoroughly before adding clinical duties'] },
+  { id: 'dp_para', number: '4', label: 'Paraoptometric Duties', bullets: ['Prescreening patients and running special tests for the doctor', 'Collecting patient history and updating records', 'Assisting with contact lens fittings', 'Supporting the doctor in whatever the day requires'] },
+  { id: 'dp_cpo', number: '5', label: 'CPO Certification Path', bullets: ['Opportunity to earn Certified Paraoptometric (CPO) credential', '+$2.00/hr raise after 6 months + successful CPO exam completion', 'Further advancement available within the role', 'Ask candidate: Is earning your CPO something you are interested in?'] },
+  { id: 'dp_comp', number: '6', label: 'Compensation Alignment', bullets: ['Starting wage: $19.00/hour', 'Confirm the candidate expectations align', 'Emphasize growth path to $21.00+/hr with CPO'] },
+  { id: 'dp_fit', number: '7', label: 'Culture & Fit', bullets: ['Looking for someone fun, outgoing, and comfortable with variety', 'Must enjoy working directly with patients', 'Fit matters both ways'] },
+]
+
+const STAR_QUESTIONS_OPTICAL = [
+  { id: 'star_learning', number: '1', prompt: '"Tell me about a time you had to learn something new quickly to do your job well."' },
+  { id: 'star_multitask', number: '2', prompt: '"Tell me about a time when you had to manage multiple responsibilities at once. How did you stay organized and ensure nothing was missed?"' },
+]
+
 
 const RUBRIC = [
   { score: 5, label: 'Excellent', desc: 'Proactive, clear communicator, fast learner, confident under pressure' },
@@ -325,58 +342,100 @@ export default function PrintApplicant() {
               ))}
             </div>
 
-            {/* Short answers */}
+            {/* Short answers — role-aware */}
             <div className="section-header">Short Answer Responses</div>
 
             <div className="response-block">
-              <div className="response-label">Why are you interested in this role?</div>
+              <div className="response-label">
+                {applicant.role === 'optical-technician'
+                  ? 'What aspects of a work environment are important to you, and how does Newport Vision Source align with your values?'
+                  : 'Why are you interested in this role?'}
+              </div>
               <div className="response-text">{applicant.why_interested || '—'}</div>
             </div>
 
             <div className="response-block">
-              <div className="response-label">What makes you good at supporting a provider and reducing mental load?</div>
+              <div className="response-label">
+                {applicant.role === 'optical-technician'
+                  ? 'What excites you most about the Optical / Paraoptometric Technician float position?'
+                  : 'What makes you good at supporting a provider and reducing mental load?'}
+              </div>
               <div className="response-text">{applicant.why_good_fit || '—'}</div>
             </div>
 
-            {/* Trial task */}
+            {/* Trial task — role-aware */}
             <div className="section-header">
               Trial Task Responses
               {totalTaskScore > 0 && <span style={{ float: 'right', fontWeight: 400 }}>Total Score: {totalTaskScore} / 100</span>}
             </div>
 
-            {trialTask.questions.map((q, qi) => {
-              const qKey = `q${qi + 1}`
-              const score = ts[qKey]
-              const priorityIds = tr.q4 || []
-              const priorityItems = trialTask.questions[3].items
-
-              return (
-                <div key={q.id} className="response-block">
-                  <div className="response-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Question {qi + 1}</span>
-                    {score !== undefined && score !== '' && (
-                      <span style={{ color: '#2F332E', fontWeight: 600 }}>Score: {score} / {q.rubric.maxPoints}</span>
-                    )}
-                  </div>
-                  <div style={{ fontSize: 10, color: '#444', marginBottom: 4, fontStyle: 'italic', lineHeight: 1.5 }}>
-                    {q.prompt.length > 120 ? q.prompt.substring(0, 120) + '...' : q.prompt}
-                  </div>
-                  {qi < 3 ? (
-                    <div className="response-text">{tr[qKey] || '—'}</div>
-                  ) : (
-                    <div className="response-text">
-                      {priorityIds.length > 0
-                        ? priorityIds.map((pid, idx) => {
-                            const item = priorityItems.find(i => i.id === pid)
-                            return `${idx + 1}. ${item?.text || ''}`
-                          }).join('\n')
-                        : '—'}
-                      {tr.q4_reasoning ? `\n\nReasoning: ${tr.q4_reasoning}` : ''}
-                    </div>
-                  )}
+            {applicant.role === 'optical-technician' ? (
+              <>
+                {/* Scenario reference */}
+                <div style={{ background: '#F1EFEA', border: '1px solid #E2E4E0', padding: '8px 10px', marginBottom: 10, fontSize: 9, fontFamily: 'monospace', color: '#2F332E' }}>
+                  <div style={{ fontSize: 8, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#76886C', marginBottom: 4, fontFamily: 'sans-serif' }}>Scenario Reference — Sandra VSP Benefits</div>
+                  <div>Frame allowance: $150.00 · Single vision lenses: covered in full · AR coating: 20% off retail</div>
+                  <div>Frame: $289.00 · Lenses: $120.00 · AR coating: $85.00</div>
+                  <div style={{ marginTop: 4, color: '#76886C', fontFamily: 'sans-serif', fontSize: 8 }}>Answer keys — Q1: $139.00 total · Q2: $207.00 total (AR: $68.00 after 20% off)</div>
                 </div>
-              )
-            })}
+                {trialTaskOptical.questions.map((q, qi) => {
+                  const qKey = `q${qi + 1}`
+                  const score = ts[qKey]
+                  const maxPts = [35, 30, 35][qi]
+                  return (
+                    <div key={q.id} className="response-block">
+                      <div className="response-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Question {qi + 1}</span>
+                        {score !== undefined && score !== '' && (
+                          <span style={{ color: '#2F332E', fontWeight: 600 }}>Score: {score} / {maxPts}</span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 10, color: '#444', marginBottom: 4, fontStyle: 'italic', lineHeight: 1.5 }}>
+                        {q.prompt.length > 120 ? q.prompt.substring(0, 120) + '...' : q.prompt}
+                      </div>
+                      <div className="response-text" style={{ fontFamily: qi < 2 ? 'monospace' : 'inherit' }}>
+                        {tr[qKey] || '—'}
+                      </div>
+                    </div>
+                  )
+                })}
+              </>
+            ) : (
+              <>
+                {trialTask.questions.map((q, qi) => {
+                  const qKey = `q${qi + 1}`
+                  const score = ts[qKey]
+                  const priorityIds = tr.q4 || []
+                  const priorityItems = trialTask.questions[3].items
+                  return (
+                    <div key={q.id} className="response-block">
+                      <div className="response-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Question {qi + 1}</span>
+                        {score !== undefined && score !== '' && (
+                          <span style={{ color: '#2F332E', fontWeight: 600 }}>Score: {score} / {q.rubric.maxPoints}</span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 10, color: '#444', marginBottom: 4, fontStyle: 'italic', lineHeight: 1.5 }}>
+                        {q.prompt.length > 120 ? q.prompt.substring(0, 120) + '...' : q.prompt}
+                      </div>
+                      {qi < 3 ? (
+                        <div className="response-text">{tr[qKey] || '—'}</div>
+                      ) : (
+                        <div className="response-text">
+                          {priorityIds.length > 0
+                            ? priorityIds.map((pid, idx) => {
+                                const item = priorityItems.find(i => i.id === pid)
+                                return `${idx + 1}. ${item?.text || ''}`
+                              }).join('\n')
+                            : '—'}
+                          {tr.q4_reasoning ? `\n\nReasoning: ${tr.q4_reasoning}` : ''}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </>
+            )}
 
             {/* Internal notes */}
             {applicant.internal_notes && (
@@ -397,8 +456,12 @@ export default function PrintApplicant() {
             <div className="doc-header">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                 <div>
-                  <div className="doc-title">Medical Scribe Interview Guide</div>
-                  <div className="doc-subtitle">Insight Assist · Dr. Beth's Team · Rural Washington State, USA</div>
+                  <div className="doc-title">
+                    {applicant.role === 'optical-technician' ? 'Optical / Paraoptometric Technician Interview Guide' : 'Medical Scribe Interview Guide'}
+                  </div>
+                  <div className="doc-subtitle">
+                    {applicant.role === 'optical-technician' ? 'Newport Vision Source · Newport, WA' : "Insight Assist · Dr. Beth's Team · Rural Washington State, USA"}
+                  </div>
                 </div>
                 <div style={{ textAlign: 'right', fontSize: 10, color: '#888' }}>
                   <div>Candidate: <strong style={{ color: '#1C1C1C' }}>{applicant.full_name}</strong></div>
@@ -410,7 +473,7 @@ export default function PrintApplicant() {
             {/* Section 1: Discussion Points */}
             <div className="section-header">Section 1 — Key Discussion Points (Notes Only)</div>
 
-            {DISCUSSION_POINTS.map((dp) => (
+            {(applicant.role === 'optical-technician' ? DISCUSSION_POINTS_OPTICAL : DISCUSSION_POINTS).map((dp) => (
               <div key={dp.id} style={{ marginBottom: 10 }}>
                 <div style={{ display: 'flex', gap: 6, marginBottom: 4 }}>
                   <span style={{ color: '#76886C', fontWeight: 600, fontSize: 10, flexShrink: 0 }}>{dp.number}.</span>
@@ -443,7 +506,7 @@ export default function PrintApplicant() {
               ))}
             </div>
 
-            {STAR_QUESTIONS.map((q) => {
+            {(applicant.role === 'optical-technician' ? STAR_QUESTIONS_OPTICAL : STAR_QUESTIONS).map((q) => {
               const score = iv.star_scores?.[q.id]
               const strength = iv.star_strength?.[q.id]
               const noteVal = iv.star_notes?.[q.id] || ''

@@ -123,7 +123,9 @@ export default function Apply() {
       const { error: insertError } = await supabase.from('applications').insert([record])
       if (insertError) throw new Error(`Submission failed: ${insertError.message}`)
 
-      navigate('/confirmation')
+      // Generate reference number from timestamp + random
+      const ref = 'IA-' + Date.now().toString(36).toUpperCase().slice(-5) + Math.random().toString(36).toUpperCase().slice(2, 5)
+      navigate(`/confirmation?ref=${ref}`)
     } catch (err) {
       console.error('Submit error:', err)
       setError(err.message)
